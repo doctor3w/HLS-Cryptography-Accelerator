@@ -248,7 +248,7 @@ int main() {
   printf("n = %s\n", mpz_get_str(NULL, 16, ku.n));
   printf("d = %s\n", mpz_get_str(NULL, 16, ku.d));
   printf("-------------------------------------------\n");
-  printf("bitlen(n) = %lu\n", mpz_sizeinbase(kp.n, 2));
+  printf("bitlen(n) = %zu\n", mpz_sizeinbase(kp.n, 2));
   printf("-------------------------------------------\n");
 
   const char* in =

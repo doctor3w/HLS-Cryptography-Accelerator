@@ -1,0 +1,7 @@
+#! /bin/bash
+
+if which vivado_hls &>/dev/null ; then
+        echo "$(dirname "$(which vivado_hls)")/../include"
+else
+        echo "/usr/include/vivado_hls/2015.2/"
+fi
