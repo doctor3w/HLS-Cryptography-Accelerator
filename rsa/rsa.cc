@@ -27,6 +27,14 @@ typedef struct {
   int bytes;
 } private_key_t;
 
+void print_buf(char* buf, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    if (i % 128 == 0) printf("\n");
+    printf("%02hhX", (int)buf[i]);
+  }
+  printf("\n");
+}
+
 void fill_random(char* buf, size_t len) {
   size_t filled = 0;
   while (filled < len) {
@@ -173,7 +181,7 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
   int bytes = kp.bytes;
   // 1 byte less for length, 1 byte less for space
   int chunk_size = bytes - 1;
-  int bytes_per_chunk = chunk_size - 2;
+  int bytes_per_chunk = chunk_size - 1;
 
   char iv[MAX_BYTES];
   if (use_cbc) {
@@ -195,6 +203,7 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
     memcpy(buf, message + x, size);
     fill_random(buf + size, bytes_per_chunk - size);
     buf[bytes_per_chunk] = (char)size;
+    buf[chunk_size] = 0;
 
     if (use_cbc) {
       xor_array(buf, iv, chunk_size);
@@ -224,7 +233,7 @@ int decrypt(char* message, int message_len, const char* cipher, int length,
   int bytes = ku.bytes;
   // 1 byte less for length, 1 byte less for space
   int chunk_size = bytes - 1;
-  int bytes_per_chunk = chunk_size - 2;
+  int bytes_per_chunk = chunk_size - 1;
 
   char iv[MAX_BYTES];
   if (use_cbc) {
@@ -261,13 +270,6 @@ int decrypt(char* message, int message_len, const char* cipher, int length,
 
   mpz_clears(m, c, NULL);
   return msg_idx;
-}
-
-void print_buf(char* buf, size_t len) {
-  for (size_t i = 0; i < len; i++) {
-    printf("%02hhX", (int)buf[i]);
-  }
-  printf("\n");
 }
 
 int main() {
