@@ -153,7 +153,7 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   to_buf(buf + MAX_BIT_LEN / 32, e_ap);
   to_buf(buf + 2 * MAX_BIT_LEN / 32, n_ap);
   fpga_host->write((char*)buf, sizeof(buf));
-  fpga_host->read((char*)buf, MAX_BIT_LEN / 32);
+  fpga_host->read((char*)buf, MAX_BYTES);
   ap_to_mpz(out, from_buf<MAX_BIT_LEN>(buf));
 #endif
 }
@@ -209,6 +209,8 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
       xor_array(buf, iv, chunk_size);
     }
 
+    printf("before encrypt:");
+    print_buf(buf, MAX_BYTES);
     mpz_import(m, chunk_size, 1, sizeof(buf[0]), 0, 0, buf);
     block_encrypt(c, m, kp);
 
@@ -220,6 +222,8 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
     memset(cipher + loc, 0, off-loc);
     mpz_export(cipher + off, NULL, 1, sizeof(char), 0, 0, c);
     memcpy(iv, cipher + loc, bytes);
+    printf("after encrypt:");
+    print_buf(iv, MAX_BYTES);
     loc += bytes;
   }
 
