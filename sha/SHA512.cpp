@@ -44,8 +44,6 @@ static const uint64_t K[80] = {
 };
 
 
-static const uint8_t BLOCK_SIZE = 128;
-
 // Unroll completely
 static inline uint64_t read64(const uint8_t *arr, int sidx) {
   uint64_t ret = 0;
@@ -59,24 +57,10 @@ LOOP:
 }
 
 
-static inline void memcpy_u8(uint8_t *dest, const uint8_t *src, int nbytes) {
-  // TODO: unroll this
-LOOP:
-  for (int i=0; i < nbytes; i++) {
-    dest[i] = src[i];
-  }
-}
-
-static inline void memset_u8(uint8_t *dest, uint8_t val, int nbytes) {
-LOOP:
-  for (int i=0; i < nbytes; i++) {
-    dest[i] = val;
-  }
-}
-
 SHA512Hasher::SHA512Hasher() {
   reset();
 }
+
 
 void SHA512Hasher::reset() {
   state = SHA512_INIT;
@@ -84,33 +68,14 @@ void SHA512Hasher::reset() {
   total = 0;
 }
 
-// len <= 128
-void SHA512Hasher::update(const void *msgp, uint8_t len) {
-  assert (len <= 128);
-  uint8_t *msg = (uint8_t*)msgp;
-  uint8_t remain = BLOCK_SIZE - bsize;
-  uint8_t tocpy = MIN(remain, len);
-  memcpy_u8(buf+bsize, msg, tocpy);
-
-  if (tocpy < len || len == remain) { // Not enough room or full
-    hashBlock();
-    bsize = len - tocpy;
-    memcpy_u8(buf, msg + tocpy, bsize);
-  } else { // Enough room
-    bsize += len;
-  }
-
-  total += len;
-}
-
 
 SHA512Hash SHA512Hasher::digest() {
   buf[bsize++] = 0x80;
   // zero out buffer
-  memset_u8(buf + bsize, 0, BLOCK_SIZE - bsize);
+  memset_u8<BLOCK_SIZE>(buf + bsize, 0, BLOCK_SIZE - bsize);
   if (BLOCK_SIZE - bsize < 2*sizeof(uint64_t)) { // No room
     hashBlock(); //update
-    memset_u8(buf, 0, BLOCK_SIZE - sizeof(uint64_t));
+    memset_u8<BLOCK_SIZE>(buf, 0, BLOCK_SIZE - sizeof(uint64_t));
   }
   uint64_t size = total*8;
   // TODO unroll this
@@ -123,6 +88,8 @@ LOOP_U64:
 
   return state;
 }
+
+
 
 SHA512ByteHash SHA512Hasher::byte_digest() {
   digest();
@@ -138,7 +105,6 @@ LOOP_U64:
   }
   return ret;
 }
-
 
 
 
