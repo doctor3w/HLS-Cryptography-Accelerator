@@ -5,13 +5,11 @@
 
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 #include "aes.h"
 #include "timer.h"
 
 using namespace std;
-
-// Number of test instances
-const int TEST_SIZE = 1;
 
 //------------------------------------------------------------------------
 // Helper function for reading images and labels
@@ -57,7 +55,7 @@ int main(){
   uint8_t in[Nb * NUM_BLOCKS * 4];
   uint8_t outCorrect[Nb * NUM_BLOCKS * 4];
 
-  float correct = 0.0;
+  char correct = 0;
   
   Timer timer("aes encr");
   timer.start();
@@ -77,10 +75,7 @@ int main(){
   readBytes("./data/8000bytes", in, Nb * NUM_BLOCKS * 4);
   readBytes(fn, outCorrect, Nb * NUM_BLOCKS * 4);
 
-//  printBytes(in, Nb * NUM_BLOCKS * 4);
-//  printBytes(outCorrect, Nb * NUM_BLOCKS * 4);
-
-  char i, j;
+  int i, j;
   
   bit32_t write; 
   uint32_t* keyD = (uint32_t*)key;
@@ -88,7 +83,13 @@ int main(){
     write = keyD[i];
     aes_in.write( write );
   }
+  
+  //for (i = 0; i < (sizeof(iv) >> 1); i++) {
+  //  swap(iv[i], iv[sizeof(iv) - i - 1]);
+  //}
 
+  //printBytes(iv, 16);
+  
   uint32_t* ivD = (uint32_t*)iv;
   for (i = 0; i < Nb; i++) {
     write = ivD[i];
@@ -113,14 +114,13 @@ int main(){
   }
 
   if (0 == memcmp((char*)outCorrect, (char*)out, BLOCKLEN * NUM_BLOCKS)) {
-    correct += 1.0;
-    //std::cout << "Correct!" << std::endl;
+    correct = 1;
   }
 
   timer.stop();
 
   // Calculate accuracy
-  std::cout << "Accuracy: " << correct/TEST_SIZE << std::endl;
+  std::cout << "Success: " << (correct ? "true" : "false") << std::endl;
   
   return 0;
 }

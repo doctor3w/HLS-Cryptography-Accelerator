@@ -10,7 +10,7 @@
 #define AES_256 0
 
 #ifndef NUM_BLOCKS
-#define NUM_BLOCKS 31
+#define NUM_BLOCKS 500
 #endif
 
 #define BLOCKLEN 16 // 16 bytes = 128 bits
