@@ -162,7 +162,7 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   to_buf(buf + 2 * MAX_BIT_LEN / 32, n_ap);
   fpga_host->write((char*)buf, sizeof(buf));
   fpga_host->read((char*)buf, MAX_BYTES);
-  ap_to_mpz(out, from_buf<MAX_BIT_LEN>(buf));
+  ap_to_mpz<RsaBignum, MAX_BIT_LEN>(out, from_buf(buf));
 #endif
 }
 #endif
