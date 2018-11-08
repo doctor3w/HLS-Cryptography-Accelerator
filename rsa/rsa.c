@@ -12,28 +12,31 @@
  *                                                                    *
  **********************************************************************/
 
+// Taken from: https://github.com/gilgad13/rsa-gmp
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <gmp.h>
 #include <sys/random.h>
+#include <stdint.h>
+
+#define MAX_BYTES 1024
+#define MAX_BIT_LEN (MAX_BYTES * CHAR_BIT)
 
 #define MODULUS_SIZE 1024                   /* This is the number of bits we want in the modulus */
 #define BLOCK_SIZE (MODULUS_SIZE/8)         /* This is the size of a block that gets en/decrypted at once */
 #define BUFFER_SIZE ((MODULUS_SIZE/8) / 2)  /* This is the number of bytes in n and p */
 
 typedef struct {
-    mpz_t n; /* Modulus */
-    mpz_t e; /* Public Exponent */
-} public_key;
+    mpz_t n; 
+    mpz_t e;
+} public_key_t;
 
 typedef struct {
-    mpz_t n; /* Modulus */
-    mpz_t e; /* Public Exponent */
-    mpz_t d; /* Private Exponent */
-    mpz_t p; /* Starting prime p */
-    mpz_t q; /* Starting prime q */
-} private_key;
+    mpz_t n; 
+    mpz_t d; 
+} private_key_t;
 
 void fill_random(char* buf, size_t len) {
   size_t filled = 0;
@@ -42,93 +45,91 @@ void fill_random(char* buf, size_t len) {
   }
 }
 
-void print_hex(char* arr, int len)
-{
-    int i;
-    for(i = 0; i < len; i++)
-        printf("%02x", (unsigned char) arr[i]); 
+void random_mpz_bits(mpz_t out, int bits) {
+  char buf[MAX_BYTES];
+  int bytes = bits / CHAR_BIT + (bits % CHAR_BIT == 0 ? 0 : 1);
+  fill_random(buf, bytes);
+  int good_top_bits = bits % CHAR_BIT;
+  if (good_top_bits == 0) { good_top_bits = CHAR_BIT; }
+  char high_mask = ~(-1 << good_top_bits);
+  buf[0] &= high_mask;
+  mpz_import(out, bytes, 1, sizeof(buf[0]), 0, 0, buf);
+}
+
+void probable_prime(mpz_t x, int bits) {
+  mpz_t temp;
+  mpz_init(temp);
+  random_mpz_bits(temp, bits);
+  // Set the top bit
+  mpz_setbit(temp, bits - 1);
+  // Set the bottom bit to 1 so it is odd
+  mpz_setbit(temp, 0);
+  
+  mpz_nextprime(x, temp);
+  mpz_clear(temp);
+}
+
+// Generates a random value from the range [min, max)
+void random_mpz(mpz_t out, mpz_t min, mpz_t max) {
+  mpz_t interval_size;
+  mpz_init(interval_size);
+  mpz_sub(interval_size, max, min);
+  size_t bits = mpz_sizeinbase(interval_size, 2);
+  do {
+    random_mpz_bits(out, bits);
+  } while (mpz_cmp(interval_size, out) <= 0);
+  mpz_add(out, out, min);
+}
+
+void print_hex(char* arr, int len) {
+  for(int i = 0; i < len; i++) {
+    printf("%02x", (unsigned char) arr[i]); 
+  }
 }
 
 /* NOTE: Assumes mpz_t's are initted in ku and kp */
-void generate_keys(private_key* ku, public_key* kp)
-{
-    char buf[BUFFER_SIZE];
-    mpz_t phi; mpz_init(phi);
-    mpz_t tmp1; mpz_init(tmp1);
-    mpz_t tmp2; mpz_init(tmp2);
+void generate_keys(private_key_t* ku, public_key_t* kp, int bits) {
+    mpz_t phi;
+    mpz_init(phi);
+    mpz_t two;
+    mpz_init_set_si(two, 2);
 
-    mpz_set_ui(ku->e, 65537); 
+    mpz_t p, q;
+    mpz_inits(p, q);
 
-    /* Select p and q */
-    /* Start with p */
-    // Set the bits of tmp randomly
-    fill_random(buf, BUFFER_SIZE);
-    // Set the top two bits to 1 to ensure int(tmp) is relatively large
-    buf[0] |= 0xC0;
-    // Set the bottom bit to 1 to ensure int(tmp) is odd (better for finding primes)
-    buf[BUFFER_SIZE - 1] |= 0x01;
-    // Interpret this char buffer as an int
-    mpz_import(tmp1, BUFFER_SIZE, 1, sizeof(buf[0]), 0, 0, buf);
-    // Pick the next prime starting from that random number
-    mpz_nextprime(ku->p, tmp1);
-    /* Make sure this is a good choice*/
-    mpz_mod(tmp2, ku->p, ku->e);        /* If p mod e == 1, gcd(phi, e) != 1 */
-    while(!mpz_cmp_ui(tmp2, 1))         
-    {
-        mpz_nextprime(ku->p, ku->p);    /* so choose the next prime */
-        mpz_mod(tmp2, ku->p, ku->e);
-    }
-
-    /* Now select q */
     do {
-        fill_random(buf, BUFFER_SIZE);
-        // Set the top two bits to 1 to ensure int(tmp) is relatively large
-        buf[0] |= 0xC0;
-        // Set the bottom bit to 1 to ensure int(tmp) is odd
-        buf[BUFFER_SIZE - 1] |= 0x01;
-        // Interpret this char buffer as an int
-        mpz_import(tmp1, (BUFFER_SIZE), 1, sizeof(buf[0]), 0, 0, buf);
-        // Pick the next prime starting from that random number
-        mpz_nextprime(ku->q, tmp1);
-        mpz_mod(tmp2, ku->q, ku->e);
-        while(!mpz_cmp_ui(tmp2, 1))
-        {
-            mpz_nextprime(ku->q, ku->q);
-            mpz_mod(tmp2, ku->q, ku->e);
-        }
-    } while(mpz_cmp(ku->p, ku->q) == 0); /* If we have identical primes (unlikely), try again */
+      probable_prime(p, bits / 2);
+      probable_prime(q, bits / 2);
+      mpz_mul(ku->n, p, q);
 
-    /* Calculate n = p x q */
-    mpz_mul(ku->n, ku->p, ku->q);
-
-    /* Compute phi(n) = (p-1)(q-1) */
-    mpz_sub_ui(tmp1, ku->p, 1);
-    mpz_sub_ui(tmp2, ku->q, 1);
-    mpz_mul(phi, tmp1, tmp2);
-
-    /* Calculate d (multiplicative inverse of e mod phi) */
-    if(mpz_invert(ku->d, ku->e, phi) == 0)
-    {
-        mpz_gcd(tmp1, ku->e, phi);
-        printf("gcd(e, phi) = [%s]\n", mpz_get_str(NULL, 16, tmp1));
-        printf("Invert failed\n");
-    }
-
-    /* Set public key */
-    mpz_set(kp->e, ku->e);
+      mpz_sub_ui(p, p, 1);
+      mpz_sub_ui(q, q, 1);
+      mpz_mul(phi, p, q);
+    } while (mpz_cmp_si(phi, 2) <= 0);
     mpz_set(kp->n, ku->n);
 
-    return;
+    mpz_t gcd;
+    mpz_init(gcd);
+    do {
+      random_mpz(kp->e, two, phi);
+      mpz_gcd(gcd, kp->e, phi);
+    } while(mpz_cmp_si(gcd, 1) != 0);
+    mpz_clear(gcd);
+
+    mpz_invert(ku->d, kp->e, phi);
+    
+    mpz_clear(phi);
+    mpz_clear(two);
 }
 
-void block_encrypt(mpz_t C, mpz_t M, public_key kp)
+void block_encrypt(mpz_t C, mpz_t M, public_key_t kp)
 {
     /* C = M^e mod n */
     mpz_powm(C, M, kp.e, kp.n); 
     return;
 }
 
-int encrypt(char cipher[], char message[], int length, public_key kp)
+int encrypt(char cipher[], char message[], int length, public_key_t kp)
 {
     /* Its probably overkill, but I implemented PKCS#1v1.5 paging
      * Encoded message block is of the form:
@@ -182,13 +183,13 @@ int encrypt(char cipher[], char message[], int length, public_key kp)
     return block_count * BLOCK_SIZE;
 } 
 
-void block_decrypt(mpz_t M, mpz_t C, private_key ku)
+void block_decrypt(mpz_t M, mpz_t C, private_key_t ku)
 {
     mpz_powm(M, C, ku.d, ku.n); 
     return;
 }
 
-int decrypt(char* message, char* cipher, int length, private_key ku)
+int decrypt(char* message, char* cipher, int length, private_key_t ku)
 {
     int msg_idx = 0;
     char buf[BLOCK_SIZE];
@@ -231,38 +232,34 @@ int main()
     mpz_t M;  mpz_init(M);
     mpz_t C;  mpz_init(C);
     mpz_t DC;  mpz_init(DC);
-    private_key ku;
-    public_key kp;
+    private_key_t ku;
+    public_key_t kp;
 
     // Initialize public key
     mpz_init(kp.n);
     mpz_init(kp.e); 
     // Initialize private key
     mpz_init(ku.n); 
-    mpz_init(ku.e); 
     mpz_init(ku.d); 
-    mpz_init(ku.p); 
-    mpz_init(ku.q); 
 
-    generate_keys(&ku, &kp);
+    generate_keys(&ku, &kp, 1024);
     printf("---------------Private Key-----------------");
-    printf("kp.n is [%s]\n", mpz_get_str(NULL, 16, kp.n));
-    printf("kp.e is [%s]\n", mpz_get_str(NULL, 16, kp.e));
+    printf("kp.n is\n%s\n", mpz_get_str(NULL, 16, kp.n));
+    printf("kp.e is\n%s\n", mpz_get_str(NULL, 16, kp.e));
     printf("---------------Public Key------------------");
-    printf("ku.n is [%s]\n", mpz_get_str(NULL, 16, ku.n));
-    printf("ku.e is [%s]\n", mpz_get_str(NULL, 16, ku.e));
-    printf("ku.d is [%s]\n", mpz_get_str(NULL, 16, ku.d));
-    printf("ku.p is [%s]\n", mpz_get_str(NULL, 16, ku.p));
-    printf("ku.q is [%s]\n", mpz_get_str(NULL, 16, ku.q));
+    printf("ku.n is\n%s\n", mpz_get_str(NULL, 16, ku.n));
+    printf("ku.d is\n%s\n", mpz_get_str(NULL, 16, ku.d));
 
-    char buf[BLOCK_SIZE]; 
+    printf("bitlen(n) = %lu\n", mpz_sizeinbase(kp.n, 2));
+
+    char buf[127]; 
     fill_random(buf, sizeof(buf));
 
-    mpz_import(M, (BLOCK_SIZE), 1, sizeof(buf[0]), 0, 0, buf);
-    printf("original is [%s]\n", mpz_get_str(NULL, 16, M)); 
+    mpz_import(M, sizeof(buf), 1, sizeof(buf[0]), 0, 0, buf);
+    printf("original is\n%s\n", mpz_get_str(NULL, 62, M)); 
     block_encrypt(C, M, kp);
-    printf("encrypted is [%s]\n", mpz_get_str(NULL, 16, C));
+    printf("encrypted is\n%s\n", mpz_get_str(NULL, 62, C));
     block_decrypt(DC, C, ku);
-    printf("decrypted is [%s]\n", mpz_get_str(NULL, 16, DC));
+    printf("decrypted is\n%s\n", mpz_get_str(NULL, 62, DC));
     return 0;
 }
