@@ -1,10 +1,9 @@
-// gcc aes.cpp -o aes
-
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include "aes.h"
 
 typedef uint8_t state_t[4][4];
-
 static const uint8_t sbox[256] = {
   //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
@@ -48,76 +47,77 @@ static const uint8_t rcon[11] = {
 #define sBoxVal(num) (sbox[(num)])
 #define sBoxInv(num) (rsbox[(num)])
 
-inline void rotWord(uint8_t w[4]) {
-  unsigned k;
-  k = w[0];
-  w[0] = w[1];
-  w[1] = w[2];
-  w[2] = w[3];
-  w[3] = k;
-}
-
-inline void subWord(uint8_t w[4]) {
-  unsigned x;
-  for (x = 0; x < 4; x++)
-    w[x] = sBoxVal(w[x]);
-}
-
-void keyExpansion(uint8_t* roundKey, const uint8_t* key) {
-  unsigned i, j, k; 
-  uint8_t x;// x offset
-  uint8_t temp[4];
-
-  for (i = 0; i < Nk; i++)
-    for (x = 0; x < 4; x++)
-      roundKey[i * 4 + x] = key[i * 4 + x];
-
-  for (i = Nk; i < Nb * (Nr + 1); i++) {
+static void keyExpansion(uint8_t* roundKey, const uint8_t* key) {
+  unsigned i, j, k;
+  uint8_t tempa[4];
+  for (i = 0; i < Nk; ++i) {
+    roundKey[(i * 4) + 0] = key[(i * 4) + 0];
+    roundKey[(i * 4) + 1] = key[(i * 4) + 1];
+    roundKey[(i * 4) + 2] = key[(i * 4) + 2];
+    roundKey[(i * 4) + 3] = key[(i * 4) + 3];
+  }
+  for (i = Nk; i < Nb * (Nr + 1); ++i) {
     k = (i - 1) * 4;
-    for (x = 0; x < 4; x++)
-      temp[x] = roundKey[k + x];
+    tempa[0] = roundKey[k + 0];
+    tempa[1] = roundKey[k + 1];
+    tempa[2] = roundKey[k + 2];
+    tempa[3] = roundKey[k + 3];
 
     if (i % Nk == 0) {
-      rotWord(temp); 
-      subWord(temp);
-      temp[0] = temp[0] ^ rcon[i / Nk];
+      k = tempa[0];
+      tempa[0] = tempa[1];
+      tempa[1] = tempa[2];
+      tempa[2] = tempa[3];
+      tempa[3] = k;
+
+      tempa[0] = sBoxVal(tempa[0]);
+      tempa[1] = sBoxVal(tempa[1]);
+      tempa[2] = sBoxVal(tempa[2]);
+      tempa[3] = sBoxVal(tempa[3]);
+
+      tempa[0] = tempa[0] ^ rcon[i/Nk];
     }
 #if defined(AES_256) && (AES_256 == 1)
-    if (i % Nk == 4) {
-      subWord(temp) 
+    if (i % Nk == 4)
+    {
+      tempa[0] = sBoxVal(tempa[0]);
+      tempa[1] = sBoxVal(tempa[1]);
+      tempa[2] = sBoxVal(tempa[2]);
+      tempa[3] = sBoxVal(tempa[3]);
     }
 #endif
-    j = i * 4; 
+    j = i * 4;
     k = (i - Nk) * 4;
-    for (x = 0; x < 4; x++)
-      roundKey[j + x] = roundKey[k + x] ^ temp[x];
-
+    roundKey[j + 0] = roundKey[k + 0] ^ tempa[0];
+    roundKey[j + 1] = roundKey[k + 1] ^ tempa[1];
+    roundKey[j + 2] = roundKey[k + 2] ^ tempa[2];
+    roundKey[j + 3] = roundKey[k + 3] ^ tempa[3];
   }
 }
 
-void addRoundKey(uint8_t round, state_t* state, uint8_t* roundKey) {
-  uint8_t i, j;
-  for (i = 0; i < 4; i++)
-    for (j = 0; j < 4; j++)
-      (*state)[i][j] ^= roundKey[round * Nb * 4 + i * Nb + j];
+static void AddRoundKey(uint8_t round,state_t* state,uint8_t* RoundKey) {
+  uint8_t i,j;
+  for (i = 0; i < 4; ++i)
+    for (j = 0; j < 4; ++j)
+      (*state)[i][j] ^= RoundKey[(round * Nb * 4) + (i * Nb) + j];
 }
 
-void subBytes(state_t* state) {
+static void SubBytes(state_t* state) {
   uint8_t i, j;
-  for (i = 0; i < 4; i++)
-    for (j = 0; j < 4; j++)
-      (*state)[i][j] = sBoxVal((*state)[j][i]);
+  for (i = 0; i < 4; ++i)
+    for (j = 0; j < 4; ++j)
+      (*state)[j][i] = sBoxVal((*state)[j][i]);
 }
- 
-void shiftRows(state_t* state) {
+
+static void ShiftRows(state_t* state) {
   uint8_t temp;
-  temp = (*state)[0][1];
+  temp           = (*state)[0][1];
   (*state)[0][1] = (*state)[1][1];
   (*state)[1][1] = (*state)[2][1];
   (*state)[2][1] = (*state)[3][1];
   (*state)[3][1] = temp;
 
-  temp = (*state)[0][2];
+  temp           = (*state)[0][2];
   (*state)[0][2] = (*state)[2][2];
   (*state)[2][2] = temp;
 
@@ -132,57 +132,57 @@ void shiftRows(state_t* state) {
   (*state)[1][3] = temp;
 }
 
-inline uint8_t xtime(uint8_t x) {
-  return ((x << 1) ^ (((x >> 7) & 1) * 0x1b));
+static uint8_t xtime(uint8_t x) {
+  return ((x<<1) ^ (((x>>7) & 1) * 0x1b));
 }
 
-void mixColumns(state_t* state) {
+static void MixColumns(state_t* state)
+{
   uint8_t i;
   uint8_t Tmp, Tm, t;
-  for (i = 0; i < 4; i++) {
-    t = (*state)[i][0];
-    Tmp = (*state)[i][0] ^ (*state)[i][1] ^ (*state)[i][2] ^ (*state)[i][3];
-    Tm = (*state)[i][0] ^ (*state)[i][1]; Tm = xtime(Tm); (*state)[i][0] ^= Tm ^ Tmp;
-    Tm = (*state)[i][1] ^ (*state)[i][2]; Tm = xtime(Tm); (*state)[i][1] ^= Tm ^ Tmp;
-    Tm = (*state)[i][2] ^ (*state)[i][3]; Tm = xtime(Tm); (*state)[i][2] ^= Tm ^ Tmp;
-    Tm = (*state)[i][3] ^ t ;             Tm = xtime(Tm); (*state)[i][3] ^= Tm ^ Tmp;
+  for (i = 0; i < 4; ++i) {
+    t   = (*state)[i][0];
+    Tmp = (*state)[i][0] ^ (*state)[i][1] ^ (*state)[i][2] ^ (*state)[i][3] ;
+    Tm  = (*state)[i][0] ^ (*state)[i][1] ; Tm = xtime(Tm);  (*state)[i][0] ^= Tm ^ Tmp ;
+    Tm  = (*state)[i][1] ^ (*state)[i][2] ; Tm = xtime(Tm);  (*state)[i][1] ^= Tm ^ Tmp ;
+    Tm  = (*state)[i][2] ^ (*state)[i][3] ; Tm = xtime(Tm);  (*state)[i][2] ^= Tm ^ Tmp ;
+    Tm  = (*state)[i][3] ^ t ;              Tm = xtime(Tm);  (*state)[i][3] ^= Tm ^ Tmp ;
   }
 }
 
-uint8_t multiply(uint8_t x, uint8_t y) {
-  return (((y & 1) * x) ^
-       ((y>>1 & 1) * xtime(x)) ^
-       ((y>>2 & 1) * xtime(xtime(x))) ^
-       ((y>>3 & 1) * xtime(xtime(xtime(x)))) ^
-       ((y>>4 & 1) * xtime(xtime(xtime(xtime(x))))));
-}
+#define Multiply(x, y)                                \
+      (  ((y & 1) * x) ^                              \
+      ((y>>1 & 1) * xtime(x)) ^                       \
+      ((y>>2 & 1) * xtime(xtime(x))) ^                \
+      ((y>>3 & 1) * xtime(xtime(xtime(x)))) ^         \
+      ((y>>4 & 1) * xtime(xtime(xtime(xtime(x))))))   \
 
-void invMixColumns(state_t* state)
-{
+static void InvMixColumns(state_t* state) {
   int i;
   uint8_t a, b, c, d;
-  for (i = 0; i < 4; ++i) { 
+  for (i = 0; i < 4; ++i) {
     a = (*state)[i][0];
     b = (*state)[i][1];
     c = (*state)[i][2];
     d = (*state)[i][3];
 
-    (*state)[i][0] = multiply(a, 0x0e) ^ multiply(b, 0x0b) ^ multiply(c, 0x0d) ^ multiply(d, 0x09);
-    (*state)[i][1] = multiply(a, 0x09) ^ multiply(b, 0x0e) ^ multiply(c, 0x0b) ^ multiply(d, 0x0d);
-    (*state)[i][2] = multiply(a, 0x0d) ^ multiply(b, 0x09) ^ multiply(c, 0x0e) ^ multiply(d, 0x0b);
-    (*state)[i][3] = multiply(a, 0x0b) ^ multiply(b, 0x0d) ^ multiply(c, 0x09) ^ multiply(d, 0x0e);
+    (*state)[i][0] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
+    (*state)[i][1] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
+    (*state)[i][2] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
+    (*state)[i][3] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
   }
 }
 
-void invSubBytes(state_t* state) {
+static void InvSubBytes(state_t* state) {
   uint8_t i, j;
   for (i = 0; i < 4; ++i)
     for (j = 0; j < 4; ++j)
       (*state)[j][i] = sBoxInv((*state)[j][i]);
 }
 
-void invShiftRows(state_t* state) {
+static void InvShiftRows(state_t* state) {
   uint8_t temp;
+
   temp = (*state)[3][1];
   (*state)[3][1] = (*state)[2][1];
   (*state)[2][1] = (*state)[1][1];
@@ -204,66 +204,66 @@ void invShiftRows(state_t* state) {
   (*state)[3][3] = temp;
 }
 
-static void cipher(state_t* state, uint8_t* roundKey)
-{
+static void Cipher(state_t* state, uint8_t* RoundKey) {
   uint8_t round = 0;
-  addRoundKey(0, state, roundKey); 
+  AddRoundKey(0, state, RoundKey);
   for (round = 1; round < Nr; ++round) {
-    subBytes(state);
-    shiftRows(state);
-    mixColumns(state);
-    addRoundKey(round, state, roundKey);
-  } 
-  subBytes(state);
-  shiftRows(state);
-  addRoundKey(Nr, state, roundKey);
-}
-
-static void invCipher(state_t* state, uint8_t* roundKey)
-{
-  uint8_t round = 0;
-  addRoundKey(Nr, state, roundKey);
-  for (round = (Nr - 1); round > 0; --round) {
-    invShiftRows(state);
-    invSubBytes(state);
-    addRoundKey(round, state, roundKey);
-    invMixColumns(state);
+    SubBytes(state);
+    ShiftRows(state);
+    MixColumns(state);
+    AddRoundKey(round, state, RoundKey);
   }
-  invShiftRows(state);
-  invSubBytes(state);
-  addRoundKey(0, state, roundKey);
+  SubBytes(state);
+  ShiftRows(state);
+  AddRoundKey(Nr, state, RoundKey);
 }
 
-void aes_ebc_encrypt(uint8_t* buf, uint8_t key[KEYLEN]) {
-  uint8_t roundKey[KEYLEN_EXP];
-  keyExpansion(roundKey, key);
-  cipher((state_t*)buf, roundKey);
+static void InvCipher(state_t* state,uint8_t* RoundKey) {
+  uint8_t round = 0;
+  AddRoundKey(Nr, state, RoundKey);
+  for (round = (Nr - 1); round > 0; --round)
+  {
+    InvShiftRows(state);
+    InvSubBytes(state);
+    AddRoundKey(round, state, RoundKey);
+    InvMixColumns(state);
+  }
+  InvShiftRows(state);
+  InvSubBytes(state);
+  AddRoundKey(0, state, RoundKey);
 }
 
-void aes_ebc_decrypt(uint8_t* buf, uint8_t key[KEYLEN]) {
-  uint8_t roundKey[KEYLEN_EXP];
-  keyExpansion(roundKey, key);
-  invCipher((state_t*)buf, roundKey);
+
+/*****************************************************************************/
+/* Public functions:                                                         */
+/*****************************************************************************/
+void AES_ECB_encrypt(uint8_t* key, uint8_t* buf) {
+  uint8_t RoundKey[KEYLEN_EXP];
+  keyExpansion(RoundKey, key);
+  Cipher((state_t*)buf, RoundKey);
 }
 
-int main(int argc, char **argv) {
-  uint8_t buf[16] = {
-    (uint8_t)0xeb, (uint8_t)0xee, (uint8_t)0x23, (uint8_t)0x16,
-    (uint8_t)0x23, (uint8_t)0xae, (uint8_t)0xd2, (uint8_t)0xa6, 
-    (uint8_t)0x3b, (uint8_t)0x27, (uint8_t)0x25, (uint8_t)0x38, 
-    (uint8_t)0x19, (uint8_t)0xc3, (uint8_t)0x4f, (uint8_t)0x3c
-  };
-  uint8_t key[16] = {
-    (uint8_t)0x22, (uint8_t)0x22, (uint8_t)0x22, (uint8_t)0x22,
-    (uint8_t)0x22, (uint8_t)0x22, (uint8_t)0x22, (uint8_t)0x22, 
-    (uint8_t)0x22, (uint8_t)0x22, (uint8_t)0x22, (uint8_t)0x22, 
-    (uint8_t)0x22, (uint8_t)0x22, (uint8_t)0x22, (uint8_t)0x22
-  };
-  printf("original:  %s\n", buf);
-  aes_ebc_encrypt(buf, key);
-  printf("encrypted: %s\n", buf);
-  aes_ebc_decrypt(buf, key);
-  printf("decrypted: %s\n", buf);
-  printf("%s", "Done.\n");
-  return 0;
+void AES_ECB_decrypt(uint8_t* key, uint8_t* buf) {
+  uint8_t RoundKey[KEYLEN_EXP];
+  keyExpansion(RoundKey, key);
+  InvCipher((state_t*)buf, RoundKey);
+}
+
+int main(int argc, char** argv) {
+  uint8_t key[] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+  uint8_t out[] = { 0x3a, 0xd7, 0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60, 0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97 };
+
+  uint8_t in[]  = { 0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96, 0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a };
+
+  AES_ECB_encrypt(key, in);
+
+  printf("ECB encrypt: ");
+
+  if (0 == memcmp((char*) out, (char*) in, 16)) {
+      printf("SUCCESS!\n");
+      return(0);
+  } else {
+      printf("FAILURE!\n");
+      return(1);
+  }
 }
