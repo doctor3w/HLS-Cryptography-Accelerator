@@ -9,6 +9,7 @@ ap_uint<BIT_LEN> mpz_to_ap(mpz_t x) {
   for (int i = 0; i < BIT_LEN; i++) {
     result[i] = mpz_tstbit(x, i);
   }
+  return result;
 }
 
 template <int BIT_LEN>
