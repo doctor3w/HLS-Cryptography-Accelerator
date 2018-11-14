@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/random.h>
+//#include <sys/random.h>
 #include "rsa_config.h"
 #include "fpga_adapter.h"
 
@@ -22,7 +22,9 @@ typedef struct {
 void fill_random(char* buf, size_t len) {
   size_t filled = 0;
   while (filled < len) {
-    filled += getrandom(buf + filled, len - filled, 0);
+    buf[filled] = rand() & 0xFF;
+    filled+=1;
+    // filled += getrandom(buf + filled, len - filled, 0);
   }
 }
 
