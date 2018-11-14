@@ -4,9 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/random.h>
-
-#define MAX_BYTES 128
-#define MAX_BIT_LEN (MAX_BYTES * CHAR_BIT)
+#include "rsa_config.h"
+#include "fpga_adapter.h"
 
 typedef struct {
   mpz_t n;
@@ -63,13 +62,22 @@ void random_mpz(mpz_t out, mpz_t min, mpz_t max) {
     random_mpz_bits(out, bits);
   } while (mpz_cmp(interval_size, out) <= 0);
   mpz_add(out, out, min);
+  mpz_clear(interval_size);
 }
 
-void print_hex(char* arr, int len) {
+void print_hex(const char* arr, int len) {
   for (int i = 0; i < len; i++) {
     printf("%02x", (unsigned char)arr[i]);
   }
 }
+
+void private_key_init(private_key_t* ku) { mpz_inits(ku->n, ku->d, NULL); }
+
+void public_key_init(public_key_t* kp) { mpz_inits(kp->n, kp->e, NULL); }
+
+void private_key_clear(private_key_t* ku) { mpz_clears(ku->n, ku->d, NULL); }
+
+void public_key_clear(public_key_t* kp) { mpz_clears(kp->n, kp->e, NULL); }
 
 void generate_keys(private_key_t* ku, public_key_t* kp, int bytes) {
   mpz_t phi;
@@ -78,8 +86,7 @@ void generate_keys(private_key_t* ku, public_key_t* kp, int bytes) {
   mpz_init_set_si(two, 2);
 
   mpz_t p, q;
-  mpz_inits(p, q);
-
+  mpz_inits(p, q, NULL);
   do {
     probable_prime(p, bytes * CHAR_BIT / 2);
     probable_prime(q, bytes * CHAR_BIT / 2);
@@ -90,6 +97,7 @@ void generate_keys(private_key_t* ku, public_key_t* kp, int bytes) {
     mpz_mul(phi, p, q);
   } while (mpz_cmp_si(phi, 2) <= 0);
   mpz_set(kp->n, ku->n);
+  mpz_clears(p, q, NULL);
 
   mpz_t gcd;
   mpz_init(gcd);
@@ -108,14 +116,25 @@ void generate_keys(private_key_t* ku, public_key_t* kp, int bytes) {
   kp->bytes = bytes;
 }
 
-void block_encrypt(mpz_t C, mpz_t M, public_key_t kp) {
-  mpz_powm(C, M, kp.e, kp.n);
-  return;
+void xor_array(char* a, const char* b, int len) {
+  for (int i = 0; i < len; i++) {
+    a[i] ^= b[i];
+  }
 }
 
-int encrypt(char* cipher, const char* message, int length, public_key_t kp,
-            char use_cbc) {
-  size_t loc = 0;
+void block_encrypt(mpz_t c, mpz_t m, public_key_t kp) {
+  //mpz_powm(c, m, kp.e, kp.n);
+  fpga_rsa_block_adapter<MAX_BIT_LEN>(c, m, kp.n, kp.e);
+}
+
+void block_decrypt(mpz_t m, mpz_t c, private_key_t ku) {
+  //mpz_powm(m, c, ku.d, ku.n);
+  fpga_rsa_block_adapter<MAX_BIT_LEN>(m, c, ku.n, ku.d);
+}
+
+int encrypt(char* cipher, int cipher_len, const char* message, int length,
+            public_key_t kp, char use_cbc) {
+  int loc = 0;
   int bytes = kp.bytes;
   // 1 byte less for length, 1 byte less for space
   int chunk_size = bytes - 1;
@@ -128,10 +147,8 @@ int encrypt(char* cipher, const char* message, int length, public_key_t kp,
     loc += bytes;
   }
 
-  mpz_t m;
-  mpz_init(m);
-  mpz_t c;
-  mpz_init(c);
+  mpz_t m, c;
+  mpz_inits(m, c, NULL);
 
   for (int x = 0; x < length; x += bytes_per_chunk) {
     char buf[MAX_BYTES];
@@ -145,32 +162,29 @@ int encrypt(char* cipher, const char* message, int length, public_key_t kp,
     buf[bytes_per_chunk] = (char)size;
 
     if (use_cbc) {
-      for (int i = 0; i < chunk_size; i++) {
-        buf[i] ^= iv[i];
-      }
+      xor_array(buf, iv, chunk_size);
     }
 
     mpz_import(m, chunk_size, 1, sizeof(buf[0]), 0, 0, buf);
     block_encrypt(c, m, kp);
 
+    if (cipher_len < loc + bytes) {
+      loc = -1;
+      break;
+    }
     int off = loc + (bytes - (mpz_sizeinbase(c, 2) + 8 - 1) / 8);
     mpz_export(cipher + off, NULL, 1, sizeof(char), 0, 0, c);
     memcpy(iv, cipher + loc, bytes);
     loc += bytes;
   }
-  mpz_clear(m);
-  mpz_clear(c);
+
+  mpz_clears(m, c, NULL);
   return loc;
 }
 
-void block_decrypt(mpz_t M, mpz_t C, private_key_t ku) {
-  mpz_powm(M, C, ku.d, ku.n);
-  return;
-}
-
-int decrypt(char* message, const char* cipher, int length, private_key_t ku,
-            char use_cbc) {
-  size_t loc = 0;
+int decrypt(char* message, int message_len, const char* cipher, int length,
+            private_key_t ku, char use_cbc) {
+  int loc = 0;
   int bytes = ku.bytes;
   // 1 byte less for length, 1 byte less for space
   int chunk_size = bytes - 1;
@@ -182,10 +196,8 @@ int decrypt(char* message, const char* cipher, int length, private_key_t ku,
     loc += bytes;
   }
 
-  mpz_t m;
-  mpz_init(m);
-  mpz_t c;
-  mpz_init(c);
+  mpz_t m, c;
+  mpz_inits(m, c, NULL);
 
   int msg_idx = 0;
   for (; loc < length; loc += bytes) {
@@ -197,74 +209,64 @@ int decrypt(char* message, const char* cipher, int length, private_key_t ku,
     mpz_export(buf + off, NULL, 1, sizeof(char), 0, 0, m);
 
     if (use_cbc) {
-      for (int i = 0; i < bytes; i++) {
-        buf[i] ^= iv[i];
-      }
+      xor_array(buf, iv, bytes);
       memcpy(iv, cipher + loc, bytes);
     }
 
     int len = buf[bytes_per_chunk];
+    if (message_len < msg_idx + len) {
+      msg_idx = -1;
+      break;
+    }
     memcpy(message + msg_idx, buf, len);
     msg_idx += len;
   }
+
+  mpz_clears(m, c, NULL);
   return msg_idx;
 }
 
 void print_buf(char* buf, size_t len) {
-  for (int i = 0; i < len; i++) {
+  for (size_t i = 0; i < len; i++) {
     printf("%02hhX", (int)buf[i]);
   }
   printf("\n");
 }
 
 int main() {
-  mpz_t M;
-  mpz_init(M);
-  mpz_t C;
-  mpz_init(C);
-  mpz_t DC;
-  mpz_init(DC);
   private_key_t ku;
   public_key_t kp;
+  private_key_init(&ku);
+  public_key_init(&kp);
 
-  // Initialize public key
-  mpz_init(kp.n);
-  mpz_init(kp.e);
-  // Initialize private key
-  mpz_init(ku.n);
-  mpz_init(ku.d);
-
-  generate_keys(&ku, &kp, 128);
-  printf("---------------Private Key-----------------");
-  printf("kp.n is\n%s\n", mpz_get_str(NULL, 16, kp.n));
-  printf("kp.e is\n%s\n", mpz_get_str(NULL, 16, kp.e));
-  printf("---------------Public Key------------------");
-  printf("ku.n is\n%s\n", mpz_get_str(NULL, 16, ku.n));
-  printf("ku.d is\n%s\n", mpz_get_str(NULL, 16, ku.d));
-
+  generate_keys(&ku, &kp, MAX_BYTES);
+  printf("---------------Private Key----------------\n");
+  printf("n = %s\n", mpz_get_str(NULL, 16, kp.n));
+  printf("e = %s\n", mpz_get_str(NULL, 16, kp.e));
+  printf("---------------Public Key------------------\n");
+  printf("n = %s\n", mpz_get_str(NULL, 16, ku.n));
+  printf("d = %s\n", mpz_get_str(NULL, 16, ku.d));
+  printf("-------------------------------------------\n");
   printf("bitlen(n) = %lu\n", mpz_sizeinbase(kp.n, 2));
+  printf("-------------------------------------------\n");
 
-  char buf[127];
-  fill_random(buf, sizeof(buf));
-
-  mpz_import(M, sizeof(buf), 1, sizeof(buf[0]), 0, 0, buf);
-  printf("original: \n%s\n\n", mpz_get_str(NULL, 62, M));
-  block_encrypt(C, M, kp);
-  printf("encrypted is\n%s\n", mpz_get_str(NULL, 62, C));
-  block_decrypt(DC, C, ku);
-  printf("decrypted is\n%s\n", mpz_get_str(NULL, 62, DC));
-
-  printf("------------------");
-  printf("\n\n\n");
   const char* in =
       "hi my name is bob and I am super long. I am a really long really cool "
       "message that will require multiple blocks. Haha take t";
   char out[128 * 50];
-  int len = encrypt(out, in, strlen(in) + 1, kp, 1);
+  int len = encrypt(out, sizeof(out), in, strlen(in) + 1, kp, 1);
+  if (len == -1) {
+    printf("encryption failed\n");
+    return 1;
+  }
   printf("Encrypted: %d\n", len);
   print_buf(out, len);
-  char result[128 * 50];
-  len = decrypt(result, out, len, ku, 1);
+  char result[125];
+  len = decrypt(result, sizeof(result), out, len, ku, 1);
+  if (len == -1) {
+    printf("decryption failed\n");
+    return 1;
+  }
   printf("Decrypted: %d\n", len);
   printf("%s\n", result);
 }

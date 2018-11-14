@@ -1,5 +1,5 @@
-rsa: rsa.c
-	gcc $< -o $@ -lgmp -Wall -Werror -O3
+rsa: rsa.cc
+	g++ $< -o $@ -lgmp -Wall -Werror -O3
 
 clean:
 	rm -rf rsa
