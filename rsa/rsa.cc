@@ -1,11 +1,12 @@
 #include <gmp.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include "fpga_rsa.h"
+#include "mpz_adapters.h"
 //#include <sys/random.h>
 #include "rsa_config.h"
-#include "fpga_adapter.h"
 
 typedef struct {
   mpz_t n;
@@ -124,14 +125,22 @@ void xor_array(char* a, const char* b, int len) {
   }
 }
 
+void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
+  ap_uint<MAX_BIT_LEN> data_ap = mpz_to_ap<MAX_BIT_LEN>(data);
+  ap_uint<MAX_BIT_LEN> n_ap = mpz_to_ap<MAX_BIT_LEN>(n);
+  ap_uint<MAX_BIT_LEN> e_ap = mpz_to_ap<MAX_BIT_LEN>(e);
+
+  ap_to_mpz(out, fpga_powm(data_ap, e_ap, n_ap));
+}
+
 void block_encrypt(mpz_t c, mpz_t m, public_key_t kp) {
   //mpz_powm(c, m, kp.e, kp.n);
-  fpga_rsa_block_adapter<MAX_BIT_LEN>(c, m, kp.n, kp.e);
+  fpga_rsa_block_adapter(c, m, kp.n, kp.e);
 }
 
 void block_decrypt(mpz_t m, mpz_t c, private_key_t ku) {
   //mpz_powm(m, c, ku.d, ku.n);
-  fpga_rsa_block_adapter<MAX_BIT_LEN>(m, c, ku.n, ku.d);
+  fpga_rsa_block_adapter(m, c, ku.n, ku.d);
 }
 
 int encrypt(char* cipher, int cipher_len, const char* message, int length,
