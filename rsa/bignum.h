@@ -1,5 +1,8 @@
 #pragma once
 
+// Adapter from:
+// https://github.com/possibly-wrong/precision/blob/master/math_Unsigned.h
+
 #include <stdint.h>
 #include "big_ap_int.h"
 #include "vector.h"
