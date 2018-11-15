@@ -37,6 +37,6 @@ void AES_ECB_decrypt(uint8_t* key, uint8_t* buf);
 void ecb_encrypt_dut(
     hls::stream<bit32_t> &strm_in,
     hls::stream<bit32_t> &strm_out
-)
+);
 
 #endif
