@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include "typedefs.h"
 
-#define AES_128 1
-#define AES_192 0
+#define AES_128 0
+#define AES_192 1
 #define AES_256 0
 
 #define BLOCKLEN 16 // 16 bytes = 128 bits

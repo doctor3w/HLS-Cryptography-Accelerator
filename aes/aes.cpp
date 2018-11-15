@@ -253,12 +253,12 @@ void ecb_encrypt_dut(
   int8_t i;
   bit32_t read;
   
-  for (i = 0; i < 4; i++) {
+  for (i = 0; i < Nb; i++) {
     read = strm_in.read();
     *(bit32_t*) &buf[i << 2] = read;
   }
 
-  for (i = 0; i < 6; i++) {
+  for (i = 0; i < Nk; i++) {
     read = strm_in.read();
     *(bit32_t*) &buf[i << 2] = read;
   }
@@ -266,7 +266,7 @@ void ecb_encrypt_dut(
   AES_ECB_encrypt(key, buf);
   
   bit32_t *out = (bit32_t*)buf;
-  for (i = 0; i < 4; i++)
+  for (i = 0; i < Nb; i++)
     strm_out.write( out[i] );
 }
 
