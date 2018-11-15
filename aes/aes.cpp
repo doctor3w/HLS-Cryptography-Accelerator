@@ -234,20 +234,21 @@ static void InvCipher(state_t* state,uint8_t* RoundKey) {
 /*****************************************************************************/
 void AES_ECB_encrypt(uint8_t* key, uint8_t* buf) {
   uint8_t RoundKey[KEYLEN_EXP];
-  uint8_t st[4][Nb];
+  //uint8_t st[4][Nb];
+  state_t st;
   
   keyExpansion(RoundKey, key);
   
   int r, c;
   for (r = 0; r < 4; r++)
     for (c = 0; c < Nb; c++)
-      st[r][c] = buf[r + (c<<2)];
+      st[r][c] = buf[c + (r<<2)];
 
-  Cipher(st, RoundKey);
+  Cipher(&st, RoundKey);
 
   for (r = 0; r < 4; r++)
     for (c = 0; c < Nb; c++)
-      buf[r + (c<<2)] = st[r][c]; 
+      buf[c + (r<<2)] = st[r][c]; 
 }
 
 void AES_ECB_decrypt(uint8_t* key, uint8_t* buf) {
