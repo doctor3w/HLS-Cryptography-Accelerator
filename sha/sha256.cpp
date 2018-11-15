@@ -3,14 +3,10 @@
 
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <cstdint>
-#include <assert.h>
 #include <string.h>
 #include <endian.h>
-#include <inttypes.h>
+#include <stdint.h>
 
-#include "include.h"
 
 struct SHA256Hash {
   uint32_t hash[8];
@@ -30,43 +26,6 @@ const SHA256Hash SHA256_INIT = {
   }
 };
 
-// Rotate right n
-inline uint32_t Sn(uint32_t x, int n) { return (x >> n) | (x << (32 - n)); }
-inline uint32_t Rn(uint32_t x, int n) { return x >> n; }
-
-inline uint32_t Ch(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (~x & z); }
-inline uint32_t Maj(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (x & z) ^ (y & z); }
-inline uint32_t CSigma0(uint32_t x) { return Sn(x, 2)^Sn(x, 13)^Sn(x, 22); }
-inline uint32_t CSigma1(uint32_t x) { return Sn(x, 6)^Sn(x, 11)^Sn(x, 25); }
-inline uint32_t LSigma0(uint32_t x) { return Sn(x, 7)^Sn(x, 18)^Rn(x, 3); }
-inline uint32_t LSigma1(uint32_t x) { return Sn(x, 17)^Sn(x, 19)^Rn(x, 10); }
-
-
-uint8_t *padd(const void *buf, const size_t len, size_t *buflen) {
-  size_t resid = (len + 1) % 64;
-  size_t k = (resid <= 56) ? 56 - resid : (64 - resid) + 56;
-  *buflen = len + 1 + k + sizeof(uint64_t);
-  assert(!(*buflen % 64));
-  uint8_t *res = (uint8_t*)calloc(*buflen, 1);
-  memcpy(res, buf, len);
-  res[len] = 0x80;
-  *((uint64_t *)(&res[*buflen - sizeof(uint64_t)])) = htobe64(len*8);
-  return res;
-}
-
-
-template <void(*F)(void*, uint32_t*, uint64_t)>
-SHA256Hash sha256(const void *data, size_t len) {
-  size_t buflen;
-  uint8_t *padded = padd(data, len, &buflen);
-  SHA256Hash out = SHA256_INIT;
-  F(padded, out.hash, buflen / 64);
-  free(padded);
-  return out;
-}
-
-
-
 // The first thirty-two bits of the fractional parts of the cube roots of the first sixty-four primes.
 uint32_t K[64] = {
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -80,7 +39,19 @@ uint32_t K[64] = {
 };
 
 
-SHA256Hash hashBlock(SHA256Hash inter, uint32_t msg[16]) {
+// Rotate right n
+inline uint32_t Sn(uint32_t x, int n) { return (x >> n) | (x << (32 - n)); }
+inline uint32_t Rn(uint32_t x, int n) { return x >> n; }
+
+inline uint32_t Ch(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (~x & z); }
+inline uint32_t Maj(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (x & z) ^ (y & z); }
+inline uint32_t CSigma0(uint32_t x) { return Sn(x, 2)^Sn(x, 13)^Sn(x, 22); }
+inline uint32_t CSigma1(uint32_t x) { return Sn(x, 6)^Sn(x, 11)^Sn(x, 25); }
+inline uint32_t LSigma0(uint32_t x) { return Sn(x, 7)^Sn(x, 18)^Rn(x, 3); }
+inline uint32_t LSigma1(uint32_t x) { return Sn(x, 17)^Sn(x, 19)^Rn(x, 10); }
+
+
+SHA256Hash hashBlock(SHA256Hash inter, const uint32_t msg[16]) {
   uint32_t a = inter.hash[0];
   uint32_t b = inter.hash[1];
   uint32_t c = inter.hash[2];
@@ -127,32 +98,47 @@ SHA256Hash hashBlock(SHA256Hash inter, uint32_t msg[16]) {
 
 
 
-void sha_256cpu(void *data, uint32_t *res, uint64_t nchunks) {
+SHA256Hash sha256(const void *data, uint64_t nbytes) {
   SHA256Hash curr = SHA256_INIT;
-  SHA256Hash *out = (SHA256Hash *)res;
-  uint32_t *cdata = (uint32_t*)data;
+  uint8_t *cdata = (uint8_t*)data;
 
-  for (uint64_t i=0; i < nchunks; i++) {
-    curr = hashBlock(curr, cdata + 16*i);
+  uint64_t total = 0;
+  while (total <= nbytes) {
+    if (nbytes - total >= 64) {
+      curr = hashBlock(curr, (uint32_t*)(cdata + total));
+    } else {
+      uint8_t last[64];
+      memset(last, 0, sizeof(last));
+      uint64_t remain = nbytes - total;
+      memcpy(last, cdata + total, remain);
+      last[remain] = 0x80;
+      if (64 - (remain + 1) >= sizeof(uint64_t)) { // We have room at the end
+        *((uint64_t*)(&last[64-sizeof(uint64_t)])) = htobe64(nbytes*8);
+        curr = hashBlock(curr, (uint32_t*)last);
+      } else { // Hash as is, then do last block
+        curr = hashBlock(curr, (uint32_t*)last);
+        memset(last, 0, sizeof(last));
+        *((uint64_t*)(&last[64-sizeof(uint64_t)])) = htobe64(nbytes*8);
+        curr = hashBlock(curr, (uint32_t*)last);
+      }
+
+    }
+    total += 64;
   }
 
-  *out = curr;
+
+  return curr;
 }
+
 
 
 int main() {
   const char s[] = "hello world";
-  char data[12345] = {};
-  SHA256Hash out = sha256<sha256_sse4>(data, 12345);
-  SHA256Hash out2 = sha256<sha256_avx>(&s, strlen(s));
-  SHA256Hash out3 = sha256<sha256_rorx>(&s, strlen(s));
-  SHA256Hash out4 = sha256<sha256_rorx_x8ms>(&s, strlen(s));
-  SHA256Hash test = sha256<sha_256cpu>(&s, strlen(s));
+  char data[127] = {};
+  SHA256Hash test = sha256(data, sizeof(data));
 
-  uint32_t *buf = (uint32_t*)out.hash;
   for (int i=0; i < 8; i++) {
-    printf("%08x\n", buf[i]);
+    printf("%08x\n", test.hash[i]);
   }
-
 
 }
