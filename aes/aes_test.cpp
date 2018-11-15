@@ -76,10 +76,12 @@ int main(){
   ecb_encrypt_dut(aes_in, aes_out);
 
   for (i = 0; i < Nb; i++)
-    outData = aes_out.read();
+    outData[i] = aes_out.read();
 
-  if (0 == memcmp((char*)out, (char*)outData, BLOCKLEN))
+  if (0 == memcmp((char*)out, (char*)outData, BLOCKLEN)) {
     correct++;
+    //std::cout << "Correct!" << std::endl;
+  }
 
   timer.stop();
 

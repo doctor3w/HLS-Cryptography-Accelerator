@@ -247,8 +247,8 @@ void ecb_encrypt_dut(
     hls::stream<bit32_t> &strm_out
 )
 {
-  uint8_t buf[16];
-  uint8_t key[24];
+  uint8_t buf[BLOCKLEN];
+  uint8_t key[KEYLEN];
 
   int8_t i;
   bit32_t read;
@@ -260,11 +260,11 @@ void ecb_encrypt_dut(
 
   for (i = 0; i < Nk; i++) {
     read = strm_in.read();
-    *(bit32_t*) &buf[i << 2] = read;
+    *(bit32_t*) &key[i << 2] = read;
   }
 
   AES_ECB_encrypt(key, buf);
-  
+
   bit32_t *out = (bit32_t*)buf;
   for (i = 0; i < Nb; i++)
     strm_out.write( out[i] );
