@@ -24,7 +24,7 @@ void fill_random(char* buf, size_t len) {
   size_t filled = 0;
   while (filled < len) {
     buf[filled] = rand() & 0xFF;
-    filled+=1;
+    filled += 1;
     // filled += getrandom(buf + filled, len - filled, 0);
   }
 }
@@ -134,12 +134,12 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
 }
 
 void block_encrypt(mpz_t c, mpz_t m, public_key_t kp) {
-  //mpz_powm(c, m, kp.e, kp.n);
+  // mpz_powm(c, m, kp.e, kp.n);
   fpga_rsa_block_adapter(c, m, kp.n, kp.e);
 }
 
 void block_decrypt(mpz_t m, mpz_t c, private_key_t ku) {
-  //mpz_powm(m, c, ku.d, ku.n);
+  // mpz_powm(m, c, ku.d, ku.n);
   fpga_rsa_block_adapter(m, c, ku.n, ku.d);
 }
 
