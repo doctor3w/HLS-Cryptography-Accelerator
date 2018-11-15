@@ -1,7 +1,9 @@
-#ifndef _AES_
-#define _AES_
+#ifndef _AES_H_
+#define _AES_H_
 
+#include <hls_stream.h>
 #include <stdint.h>
+#include "typedefs.h"
 
 #define AES_128 1
 #define AES_192 0
@@ -27,7 +29,14 @@
   #define KEYLEN_EXP 176
 #endif
 
-void aes_ebc_encrypt(uint8_t* buf, uint8_t* key);
-void aes_ebc_decrypt(uint8_t* buf, uint8_t* key);
+typedef uint8_t state_t[4][4];
+
+void AES_ECB_encrypt(uint8_t* key, uint8_t* buf); 
+void AES_ECB_decrypt(uint8_t* key, uint8_t* buf);
+
+void ecb_encrypt_dut(
+    hls::stream<bit32_t> &strm_in,
+    hls::stream<bit32_t> &strm_out
+)
 
 #endif
