@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include "typedefs.h"
 
-#define AES_128 1
-#define AES_192 0
+#define AES_128 0
+#define AES_192 1
 #define AES_256 0
 
 #define BLOCKLEN 16 // 16 bytes = 128 bits
@@ -28,8 +28,6 @@
   #define Nr 10
   #define KEYLEN_EXP 176
 #endif
-
-typedef uint8_t state_t[4][4];
 
 void AES_ECB_encrypt(uint8_t* key, uint8_t* buf); 
 void AES_ECB_decrypt(uint8_t* key, uint8_t* buf);
