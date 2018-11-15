@@ -2,7 +2,7 @@
 
 template <typename T, int MAX_LEN>
 class vector {
-public:
+ public:
   vector() : size_(0) {}
   vector(int len, T value) : size_(len) {
     for (int i = 0; i < len; i++) {
@@ -10,13 +10,9 @@ public:
     }
   }
 
-  T& operator[](int i) {
-    return data_[i];
-  }
-  
-  const T& operator[](int i) const {
-    return data_[i];
-  }
+  T& operator[](int i) { return data_[i]; }
+
+  const T& operator[](int i) const { return data_[i]; }
 
   void resize(int new_size, T value = T()) {
     if (new_size < size_) {
@@ -41,21 +37,13 @@ public:
     size_++;
   }
 
-  void pop_back() {
-    size_--;
-  }
+  void pop_back() { size_--; }
 
-  T& back() {
-    return data_[size_ - 1];
-  }
+  T& back() { return data_[size_ - 1]; }
 
-  T& front() {
-    return data_[0];
-  }
+  T& front() { return data_[0]; }
 
-  int size() const {
-    return size_;
-  }
+  int size() const { return size_; }
 
   void erase(int start, int end) {
     size_ -= end - start;
@@ -74,8 +62,8 @@ public:
       data_[x] = value;
     }
   }
-private:
+
+ private:
   T data_[MAX_LEN];
   int size_;
 };
-
