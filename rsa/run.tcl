@@ -1,9 +1,3 @@
-#=============================================================================
-# run-fixed.tcl 
-#=============================================================================
-set filename "run_result.csv"
-file delete -force "./result/${filename}"
-
 set CFLAGS ""
 set hls_prj "rsa.prj"
 open_project ${hls_prj} -reset
@@ -21,12 +15,5 @@ csynth_design
 
 # We will skip C-RTL cosimulation for now
 #cosim_design
-
-#---------------------------------------------
-# Collect & dump out results from HLS reports
-#---------------------------------------------
-set argv [list $filename $hls_prj]
-set argc 2
-source "./script/collect_result.tcl"
 
 quit
