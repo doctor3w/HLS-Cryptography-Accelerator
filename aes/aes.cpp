@@ -1,5 +1,7 @@
 #include "aes.h"
 
+typedef uint8_t state_t[4][4];
+
 static const uint8_t sbox[256] = {
   //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
@@ -232,8 +234,20 @@ static void InvCipher(state_t* state,uint8_t* RoundKey) {
 /*****************************************************************************/
 void AES_ECB_encrypt(uint8_t* key, uint8_t* buf) {
   uint8_t RoundKey[KEYLEN_EXP];
+  uint8_t st[4][Nb];
+  
   keyExpansion(RoundKey, key);
-  Cipher((state_t*)buf, RoundKey);
+  
+  int r, c;
+  for (r = 0; r < 4; r++)
+    for (c = 0; c < Nb; c++)
+      st[r][c] = buf[r + (c<<2)];
+
+  Cipher(st, RoundKey);
+
+  for (r = 0; r < 4; r++)
+    for (c = 0; c < Nb; c++)
+      buf[r + (c<<2)] = st[r][c]; 
 }
 
 void AES_ECB_decrypt(uint8_t* key, uint8_t* buf) {
@@ -250,23 +264,28 @@ void ecb_encrypt_dut(
   uint8_t buf[BLOCKLEN];
   uint8_t key[KEYLEN];
 
-  int8_t i;
+  int i;
   bit32_t read;
   
   for (i = 0; i < Nb; i++) {
     read = strm_in.read();
-    *(bit32_t*) &buf[i << 2] = read;
+    for (int j = 0; j < 4; j++)
+      buf[j + (i<<2)] = read >> (j * 8);
   }
 
   for (i = 0; i < Nk; i++) {
     read = strm_in.read();
-    *(bit32_t*) &key[i << 2] = read;
+    for (int j = 0; j < 4; j++)
+      key[j + (i<<2)] = read >> (j * 8);
   }
 
   AES_ECB_encrypt(key, buf);
 
-  bit32_t *out = (bit32_t*)buf;
-  for (i = 0; i < Nb; i++)
-    strm_out.write( out[i] );
+  for (i = 0; i < Nb; i++) {
+    bit32_t out = 0;
+    for (int j = 0; j < 4; j++)
+      out |= (buf[j + (i<<2)] << (j * 8));
+    strm_out.write( out );
+  }
 }
 

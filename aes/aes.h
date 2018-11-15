@@ -29,8 +29,6 @@
   #define KEYLEN_EXP 176
 #endif
 
-typedef uint8_t state_t[4][4];
-
 void AES_ECB_encrypt(uint8_t* key, uint8_t* buf); 
 void AES_ECB_decrypt(uint8_t* key, uint8_t* buf);
 
