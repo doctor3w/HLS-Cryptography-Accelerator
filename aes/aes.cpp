@@ -78,8 +78,7 @@ static void keyExpansion(uint8_t* roundKey, const uint8_t* key) {
       tempa[0] = tempa[0] ^ rcon[i/Nk];
     }
 #if defined(AES_256) && (AES_256 == 1)
-    if (i % Nk == 4)
-    {
+    if (i % Nk == 4) {
       tempa[0] = sBoxVal(tempa[0]);
       tempa[1] = sBoxVal(tempa[1]);
       tempa[2] = sBoxVal(tempa[2]);
@@ -136,8 +135,7 @@ static uint8_t xtime(uint8_t x) {
   return ((x<<1) ^ (((x>>7) & 1) * 0x1b));
 }
 
-static void MixColumns(state_t* state)
-{
+static void MixColumns(state_t* state) {
   uint8_t i;
   uint8_t Tmp, Tm, t;
   for (i = 0; i < 4; ++i) {
@@ -221,8 +219,7 @@ static void Cipher(state_t* state, uint8_t* RoundKey) {
 static void InvCipher(state_t* state,uint8_t* RoundKey) {
   uint8_t round = 0;
   AddRoundKey(Nr, state, RoundKey);
-  for (round = (Nr - 1); round > 0; --round)
-  {
+  for (round = (Nr - 1); round > 0; --round) {
     InvShiftRows(state);
     InvSubBytes(state);
     AddRoundKey(round, state, RoundKey);
@@ -249,21 +246,58 @@ void AES_ECB_decrypt(uint8_t* key, uint8_t* buf) {
   InvCipher((state_t*)buf, RoundKey);
 }
 
+void ecb_encrypt_dut(
+    hls::stream<bit32_t> &strm_in,
+    hls::stream<bit32_t> &strm_out
+)
+{
+  uint8_t buf[16];
+  uint8_t key[24];
+
+  int8_t i;
+  bit32_t read;
+  
+  for (i = 0; i < 4; i++) {
+    read = strm_in.read();
+    *(bit32_t*) &buf[i << 2] = read;
+  }
+
+  for (i = 0; i < 6; i++) {
+    read = strm_in.read();
+    *(bit32_t*) &buf[i << 2] = read;
+  }
+
+  AES_ECB_encrypt(key, buf);
+  
+  bit32_t *out = (bit32_t*)buf;
+  for (i = 0; i < 4; i++)
+    strm_out.write( out[i] );
+}
+
 int main(int argc, char** argv) {
   uint8_t key[] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
   uint8_t out[] = { 0x3a, 0xd7, 0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60, 0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97 };
 
   uint8_t in[]  = { 0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96, 0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a };
 
-  AES_ECB_encrypt(key, in);
+  uint8_t buf[16];
+  memcpy((char*)buf, (char*)in, 16);
+  AES_ECB_encrypt(key, buf);
 
   printf("ECB encrypt: ");
 
-  if (0 == memcmp((char*) out, (char*) in, 16)) {
-      printf("SUCCESS!\n");
+  if (0 == memcmp((char*) out, (char*) buf, 16)) {
+    printf("SUCCESS!\n");
+    AES_ECB_decrypt(key, buf);
+    if (0 == memcmp((char*) in, (char*) buf, 16)) {
+      printf("ECB decrypt: SUCCESS!\n");
       return(0);
-  } else {
-      printf("FAILURE!\n");
+    } else {
+      printf("ECB decrypt: FAILURE!\n");
       return(1);
+    }
+  } else {
+    printf("FAILURE!\n");
+    return(1);
   }
 }

@@ -2,6 +2,7 @@
 #define _AES_
 
 #include <stdint.h>
+#include "typedefs.h"
 
 #define AES_128 1
 #define AES_192 0
@@ -27,7 +28,7 @@
   #define KEYLEN_EXP 176
 #endif
 
-void aes_ebc_encrypt(uint8_t* buf, uint8_t* key);
-void aes_ebc_decrypt(uint8_t* buf, uint8_t* key);
+void AES_ECB_encrypt(uint8_t* key, uint8_t* buf); 
+void AES_ECB_decrypt(uint8_t* key, uint8_t* buf);
 
 #endif

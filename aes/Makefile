@@ -2,7 +2,7 @@ CFLAGS = -Wall -Werror -O3 -pthread
 
 all: aes
 
-aes: aes.c
+aes: aes.cpp
 	$(CC) $(CFLAGS) $? -o $@
 
 clean:
