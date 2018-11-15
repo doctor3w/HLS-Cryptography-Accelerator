@@ -11,17 +11,18 @@ public:
   typedef uint64_t Wigit;
   static const unsigned BITS = 32;
 
-  Bignum(Digit u = 0) : digits(1, u) {}
+//  Bignum(Digit u = 0) : digits(1, u) {}
 
-  Bignum(ap_uint<MAX_DIGITS * BITS> value) {
+  Bignum(ap_uint<MAX_DIGITS * BITS> value = 0) {
     for (int i = 0; i < MAX_DIGITS; i++) {
       digits.push_back((value >> i * BITS) & 0xFFFFFFFF);
     }
+    trim();
   }
 
   ap_uint<MAX_DIGITS * BITS> to_ap_uint() {
     ap_uint<MAX_DIGITS * BITS> result = 0;
-    for (int i = 0; i < MAX_DIGITS; i++) {
+    for (int i = 0; i < digits.size(); i++) {
       for (int b = 0; b < BITS; b++) {
         result[i * BITS + b] = (digits[i] >> b) & 1;
       }
@@ -167,19 +168,40 @@ Bignum& operator/= (const Bignum& rhs)
     return *this;
 }
 
+/*
+ * ComMsgMgrException: Command "gen_rtl fpga_powm_operator% -style xilinx -tracefl mytrace -tracefmt vcd -traceopt all -f -lang sc -o /home/jng55/SuperAwesomeFastCryptoHLSAcceleratorThing/rsa/rsa.prj/solution1/syn/systemc/fpga_modpowm_operator -synmodules fpga_powm_trim fpga_powm_insert fpga_powm_resize fpga_powm_divide fpga_powm_operator% fpga_powm_operator* fpga_powm_mod fpga_powm_operator>> fpga_powm_operator*.1 fpga_powm "
+ * : Invalid c_string in format.
+ *
+ * ComMsgMgrException: Command "gen_rtl fpga_powm_operator% -style xilinx -f -lang vhdl -o /home/jng55/SuperAwesomeFastCryptoHLSAcceleratorThing/rsa/rsa.prj/solution1/syn/vhdl/fpga_modpowm_operator "
+ * : Invalid c_string in format.
+ *
+ * ComMsgMgrException: Command "gen_rtl fpga_powm_operator% -style xilinx -f -lang vlog -o /home/jng55/SuperAwesomeFastCryptoHLSAcceleratorThing/rsa/rsa.prj/solution1/syn/verilog/fpga_modpowm_operator "
+ * : Invalid c_string in format.
+ */
+
+/*
 friend Bignum operator% (const Bignum& u, const Bignum& v)
 {
     Bignum q, r;
     u.divide(v, q, r);
     return r;
 }
+*/
 
+Bignum mod(const Bignum& v) {
+    Bignum q, r;
+    (*this).divide(v, q, r);
+    return r;
+}
+
+/*
 Bignum& operator%= (const Bignum& rhs)
 {
     Bignum q;
     divide(rhs, q, *this);
     return *this;
 }
+*/
 
 void divide(Bignum v, Bignum& q, Bignum& r) const
 {
@@ -448,7 +470,7 @@ Digit to_uint() const
 
 
 private:
-vector<Digit, MAX_DIGITS> digits;
+vector<Digit, 1 + MAX_DIGITS> digits;
 
 void trim()
 {
