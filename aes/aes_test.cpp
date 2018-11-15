@@ -57,36 +57,6 @@ int main(){
 
   timer.stop();
 
-  int8_t test_images[TEST_SIZE][256];
-  int test_labels[TEST_SIZE];
-  
-  // read test images and labels
-  read_test_images(test_images);
-  read_test_labels(test_labels);
-  bit32_t test_image;
-  float correct = 0.0;
-  
-  // Timer
-  Timer timer("digirec BNN");
-  timer.start();
-  
-  // pack images to 32-bit and transmit to dut function 
-  for (int test = 0; test < TEST_SIZE; test++) {
-    for (int i = 0; i < I_WIDTH1 * I_WIDTH1 / BUS_WIDTH; i++) {
-      for (int j = 0; j < BUS_WIDTH; j++) {
-        test_image(j,j) = test_images[test][i*BUS_WIDTH+j];
-      }
-      digitrec_in.write(test_image);
-    }
-    
-    // perform prediction
-    dut(digitrec_in, digitrec_out);
-   
-    // check results
-    if (digitrec_out.read() == test_labels[test]) correct += 1.0;
-  }
-  timer.stop();
-
   // Calculate accuracy
   std::cout << "Accuracy: " << correct/TEST_SIZE << std::endl;
   

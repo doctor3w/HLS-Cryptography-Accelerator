@@ -10,7 +10,7 @@ set hls_prj aes.prj
 open_project ${hls_prj} -reset
 
 # Top function of the design is "dut"
-set_top aes
+set_top ecb_encrypt_dut
 
 # Add design and testbench files
 add_files aes.cpp

@@ -1,9 +1,5 @@
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 #include "aes.h"
 
-typedef uint8_t state_t[4][4];
 static const uint8_t sbox[256] = {
   //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
@@ -274,30 +270,3 @@ void ecb_encrypt_dut(
     strm_out.write( out[i] );
 }
 
-int main(int argc, char** argv) {
-  uint8_t key[] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
-  uint8_t out[] = { 0x3a, 0xd7, 0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60, 0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97 };
-
-  uint8_t in[]  = { 0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96, 0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a };
-
-  uint8_t buf[16];
-  memcpy((char*)buf, (char*)in, 16);
-  AES_ECB_encrypt(key, buf);
-
-  printf("ECB encrypt: ");
-
-  if (0 == memcmp((char*) out, (char*) buf, 16)) {
-    printf("SUCCESS!\n");
-    AES_ECB_decrypt(key, buf);
-    if (0 == memcmp((char*) in, (char*) buf, 16)) {
-      printf("ECB decrypt: SUCCESS!\n");
-      return(0);
-    } else {
-      printf("ECB decrypt: FAILURE!\n");
-      return(1);
-    }
-  } else {
-    printf("FAILURE!\n");
-    return(1);
-  }
-}
