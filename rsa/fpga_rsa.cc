@@ -22,13 +22,13 @@ ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
   ap_uint<32> ap_zero = 0;
   RsaBignum zero(ap_zero);
 
-  b = b.mod(m);
+  b = b % m;
   while (e > zero) {
     if (e[0] == 1) {
-      result = (result * b).mod(m);
+      result = (result * b) % m;
     }
     e = e >> 1;
-    b = (b * b).mod(m);
+    b = (b * b) % m;
   }
   return result.to_ap_uint();
 }

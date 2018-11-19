@@ -5,7 +5,8 @@ class vector {
  public:
   vector() : size_(0) {}
   vector(int len, T value) : size_(len) {
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < MAX_LEN; i++) {
+      if (i >= len) break;
       data_[i] = value;
     }
   }
@@ -18,8 +19,9 @@ class vector {
     if (new_size < size_) {
       size_ = new_size;
     } else {
-      for (int x = size_; x < new_size; x++) {
-        data_[x] = value;
+RESIZE_LOOP: for (int x = 0; x < MAX_LEN; x++) {
+        if (x + size_ >= new_size) break;
+        data_[x + size_] = value;
       }
       size_ = new_size;
     }
@@ -27,7 +29,8 @@ class vector {
 
   void assign(int new_size, T value) {
     size_ = new_size;
-    for (int x = 0; x < size_; x++) {
+    for (int x = 0; x < MAX_LEN; x++) {
+      if (x >= size_) break;
       data_[x] = value;
     }
   }
@@ -47,7 +50,8 @@ class vector {
 
   void erase(int start, int end) {
     size_ -= end - start;
-    for (int x = start; x < size_; x++) {
+    for (int x = start; x < MAX_LEN; x++) {
+      if (x >= size_) break;
       data_[x] = data_[end];
       end++;
     }
@@ -55,10 +59,13 @@ class vector {
 
   void insert(int pos, int count, T value) {
     size_ += count;
-    for (int x = size_; x >= pos; x--) {
-      data_[x] = data_[x - count];
+    for (int x = MAX_LEN; x >= pos; x--) {
+      if (x <= size_) {
+        data_[x] = data_[x - count];
+      }
     }
-    for (int x = pos; x < pos + count; x++) {
+    for (int x = pos; x < MAX_LEN; x++) {
+      if (x >= pos + count) break;
       data_[x] = value;
     }
   }
