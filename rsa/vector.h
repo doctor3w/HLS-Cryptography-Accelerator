@@ -5,7 +5,8 @@ class vector {
  public:
   vector() : size_(0) {}
   vector(int len, T value) : size_(len) {
-INIT: for (int i = 0; i < MAX_LEN; i++) {
+  INIT:
+    for (int i = 0; i < MAX_LEN; i++) {
       if (i >= len) break;
       data_[i] = value;
     }
@@ -19,7 +20,8 @@ INIT: for (int i = 0; i < MAX_LEN; i++) {
     if (new_size < size_) {
       size_ = new_size;
     } else {
-RESIZE_LOOP: for (int x = 0; x < MAX_LEN; x++) {
+    RESIZE_LOOP:
+      for (int x = 0; x < MAX_LEN; x++) {
         if (x + size_ >= new_size) break;
         data_[x + size_] = value;
       }
@@ -29,7 +31,8 @@ RESIZE_LOOP: for (int x = 0; x < MAX_LEN; x++) {
 
   void assign(int new_size, T value) {
     size_ = new_size;
-ASSIGN: for (int x = 0; x < MAX_LEN; x++) {
+  ASSIGN:
+    for (int x = 0; x < MAX_LEN; x++) {
       if (x >= size_) break;
       data_[x] = value;
     }
@@ -50,7 +53,8 @@ ASSIGN: for (int x = 0; x < MAX_LEN; x++) {
 
   void erase(int start, int end) {
     size_ -= end - start;
-ERASE: for (int x = start; x < MAX_LEN; x++) {
+  ERASE:
+    for (int x = start; x < MAX_LEN; x++) {
       if (x >= size_) break;
       data_[x] = data_[end];
       end++;
@@ -59,13 +63,15 @@ ERASE: for (int x = start; x < MAX_LEN; x++) {
 
   void insert(int pos, int count, T value) {
     size_ += count;
-SHIFT: for (int x = MAX_LEN; x >= 0; x--) {
+  SHIFT:
+    for (int x = MAX_LEN; x >= 0; x--) {
       if (x < pos) break;
       if (x <= size_) {
         data_[x] = data_[x - count];
       }
     }
-COPY: for (int x = 0 ; x < MAX_LEN; x++) {
+  COPY:
+    for (int x = 0; x < MAX_LEN; x++) {
       if (x >= count) break;
       data_[x + pos] = value;
     }

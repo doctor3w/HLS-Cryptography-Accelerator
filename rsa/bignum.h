@@ -17,7 +17,8 @@ class Bignum {
   //  Bignum(Digit u = 0) : digits(1, u) {}
 
   Bignum(ap_uint<MAX_DIGITS* BITS> value = 0) {
-INIT_LOOP: for (int i = 0; i < MAX_DIGITS; i++) {
+  INIT_LOOP:
+    for (int i = 0; i < MAX_DIGITS; i++) {
       digits.push_back((value >> i * BITS) & 0xFFFFFFFF);
     }
     trim();
@@ -97,10 +98,12 @@ INIT_LOOP: for (int i = 0; i < MAX_DIGITS; i++) {
     const int n = v.digits.size();
     Bignum w;
     w.digits.resize(m + n, 0);
-FOOBAR: for (int j = 0; j < MAX_DIGITS; ++j) {
+  FOOBAR:
+    for (int j = 0; j < MAX_DIGITS; ++j) {
       if (j >= n) break;
       Wigit k = 0;
-EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
+    EGGPLANT:
+      for (int i = 0; i < MAX_DIGITS; ++i) {
         if (i >= m) break;
         k += static_cast<Wigit>(u.digits[i]) * v.digits[j] + w.digits[i + j];
         w.digits[i + j] = static_cast<Digit>(k);
@@ -129,18 +132,16 @@ EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
     return *this;
   }
 
-  friend Bignum operator% (const Bignum& u, const Bignum& v)
-  {
-      Bignum q, r;
-      u.divide(v, q, r);
-      return r;
+  friend Bignum operator%(const Bignum& u, const Bignum& v) {
+    Bignum q, r;
+    u.divide(v, q, r);
+    return r;
   }
 
-  Bignum& operator%= (const Bignum& rhs)
-  {
-      Bignum q;
-      divide(rhs, q, *this);
-      return *this;
+  Bignum& operator%=(const Bignum& rhs) {
+    Bignum q;
+    divide(rhs, q, *this);
+    return *this;
   }
 
   void divide(Bignum v, Bignum& q, Bignum& r) const {
@@ -153,7 +154,8 @@ EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
 
     // Normalize divisor (v[n-1] >= BASE/2).
     unsigned d = BITS;
-NORMALIZE: for (Digit vn = v.digits.back(); vn != 0; vn >>= 1, --d)
+  NORMALIZE:
+    for (Digit vn = v.digits.back(); vn != 0; vn >>= 1, --d)
       ;
     v <<= d;
     r <<= d;
@@ -167,7 +169,8 @@ NORMALIZE: for (Digit vn = v.digits.back(); vn != 0; vn >>= 1, --d)
     w.digits.resize(n + 1);
     const Wigit MAX_DIGIT = (static_cast<Wigit>(1) << BITS) - 1;
     int j = m - n;
-DIVIDE: for (int x = 0; x < MAX_DIGITS; x++) {
+  DIVIDE:
+    for (int x = 0; x < MAX_DIGITS; x++) {
       if (j == 0) break;
       j--;
       // Estimate quotient digit.
@@ -178,7 +181,8 @@ DIVIDE: for (int x = 0; x < MAX_DIGITS; x++) {
 
       // Compute partial product (w = qhat * v).
       Wigit k = 0;
-PARTIAL: for (int i = 0; i < MAX_DIGITS; ++i) {
+    PARTIAL:
+      for (int i = 0; i < MAX_DIGITS; ++i) {
         if (i >= n) break;
         k += qhat * v.digits[i];
         w.digits[i] = static_cast<Digit>(k);
@@ -188,9 +192,11 @@ PARTIAL: for (int i = 0; i < MAX_DIGITS; ++i) {
 
       // Check if qhat is too large (u - w < 0).
       bool is_trial = true;
-SEARCH: while (is_trial) {
+    SEARCH:
+      while (is_trial) {
         int i = n;
-COMPARE: for (int y = 0; y < MAX_DIGITS; y++) {
+      COMPARE:
+        for (int y = 0; y < MAX_DIGITS; y++) {
           if (i == 0 || r.digits[j + i] != w.digits[i]) {
             break;
           }
@@ -200,7 +206,8 @@ COMPARE: for (int y = 0; y < MAX_DIGITS; y++) {
           // Adjust partial product (w -= v).
           --qhat;
           k = 0;
-FOOBAR: for (int i = 0; i < MAX_DIGITS; ++i) {
+        FOOBAR:
+          for (int i = 0; i < MAX_DIGITS; ++i) {
             if (i >= n) break;
             k = k + w.digits[i] - v.digits[i];
             w.digits[i] = static_cast<Digit>(k);
@@ -213,7 +220,8 @@ FOOBAR: for (int i = 0; i < MAX_DIGITS; ++i) {
 
       // Compute partial remainder (u -= w).
       k = 0;
-REM: for (int i = 0; i < MAX_DIGITS; ++i) {
+    REM:
+      for (int i = 0; i < MAX_DIGITS; ++i) {
         if (i >= n) break;
         k = k + r.digits[j + i] - w.digits[i];
         r.digits[j + i] = static_cast<Digit>(k);
@@ -303,7 +311,7 @@ REM: for (int i = 0; i < MAX_DIGITS; ++i) {
     }
     for (int x = 0; x < MAX_DIGITS; x++) {
       n--;
-      if (n==0 || u.digits[n] != v.digits[n]) break;
+      if (n == 0 || u.digits[n] != v.digits[n]) break;
     }
     return (u.digits[n] < v.digits[n]);
   }
@@ -336,12 +344,13 @@ REM: for (int i = 0; i < MAX_DIGITS; ++i) {
   vector<Digit, 1 + MAX_DIGITS> digits;
 
   void trim() {
-TRIM: for (int x = 0; x < MAX_DIGITS; x++) {
-     if (digits.back() == 0 && digits.size() > 1) {
-       digits.pop_back(); 
-     } else {
-      break;
-     }
-   }
+  TRIM:
+    for (int x = 0; x < MAX_DIGITS; x++) {
+      if (digits.back() == 0 && digits.size() > 1) {
+        digits.pop_back();
+      } else {
+        break;
+      }
+    }
   }
 };
