@@ -153,7 +153,7 @@ EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
 
     // Normalize divisor (v[n-1] >= BASE/2).
     unsigned d = BITS;
-    for (Digit vn = v.digits.back(); vn != 0; vn >>= 1, --d)
+NORMALIZE: for (Digit vn = v.digits.back(); vn != 0; vn >>= 1, --d)
       ;
     v <<= d;
     r <<= d;
@@ -167,7 +167,7 @@ EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
     w.digits.resize(n + 1);
     const Wigit MAX_DIGIT = (static_cast<Wigit>(1) << BITS) - 1;
     int j = m - n;
-    for (int x = 0; x < MAX_DIGITS; x++) {
+DIVIDE: for (int x = 0; x < MAX_DIGITS; x++) {
       if (j == 0) break;
       j--;
       // Estimate quotient digit.
@@ -178,7 +178,7 @@ EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
 
       // Compute partial product (w = qhat * v).
       Wigit k = 0;
-      for (int i = 0; i < MAX_DIGITS; ++i) {
+PARTIAL: for (int i = 0; i < MAX_DIGITS; ++i) {
         if (i >= n) break;
         k += qhat * v.digits[i];
         w.digits[i] = static_cast<Digit>(k);
@@ -188,9 +188,9 @@ EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
 
       // Check if qhat is too large (u - w < 0).
       bool is_trial = true;
-      while (is_trial) {
+SEARCH: while (is_trial) {
         int i = n;
-        for (int y = 0; y < MAX_DIGITS; y++) {
+COMPARE: for (int y = 0; y < MAX_DIGITS; y++) {
           if (i == 0 || r.digits[j + i] != w.digits[i]) {
             break;
           }
@@ -200,7 +200,7 @@ EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
           // Adjust partial product (w -= v).
           --qhat;
           k = 0;
-          for (int i = 0; i < MAX_DIGITS; ++i) {
+FOOBAR: for (int i = 0; i < MAX_DIGITS; ++i) {
             if (i >= n) break;
             k = k + w.digits[i] - v.digits[i];
             w.digits[i] = static_cast<Digit>(k);
@@ -213,7 +213,7 @@ EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
 
       // Compute partial remainder (u -= w).
       k = 0;
-      for (int i = 0; i < MAX_DIGITS; ++i) {
+REM: for (int i = 0; i < MAX_DIGITS; ++i) {
         if (i >= n) break;
         k = k + r.digits[j + i] - w.digits[i];
         r.digits[j + i] = static_cast<Digit>(k);
@@ -336,7 +336,7 @@ EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
   vector<Digit, 1 + MAX_DIGITS> digits;
 
   void trim() {
-   for (int x = 0; x < MAX_DIGITS; x++) {
+TRIM: for (int x = 0; x < MAX_DIGITS; x++) {
      if (digits.back() == 0 && digits.size() > 1) {
        digits.pop_back(); 
      } else {
