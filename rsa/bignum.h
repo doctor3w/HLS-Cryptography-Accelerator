@@ -97,10 +97,16 @@ INIT_LOOP: for (int i = 0; i < MAX_DIGITS; i++) {
     const int n = v.digits.size();
     Bignum w;
     w.digits.resize(m + n, 0);
-FOOBAR: for (int j = 0; j < MAX_DIGITS; ++j) {
+#ifdef USE_LABEL
+FOOBAR: 
+#endif
+    for (int j = 0; j < MAX_DIGITS; ++j) {
       if (j >= n) break;
       Wigit k = 0;
-EGGPLANT: for (int i = 0; i < MAX_DIGITS; ++i) {
+#ifdef USE_LABEL
+EGGPLANT:
+#endif
+      for (int i = 0; i < MAX_DIGITS; ++i) {
         if (i >= m) break;
         k += static_cast<Wigit>(u.digits[i]) * v.digits[j] + w.digits[i + j];
         w.digits[i + j] = static_cast<Digit>(k);

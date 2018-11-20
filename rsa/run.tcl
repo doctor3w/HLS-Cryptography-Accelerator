@@ -1,5 +1,8 @@
 set CFLAGS ""
 set hls_prj "rsa.prj"
+# Comment me out and then loops have undefined trip counts...
+# set CFLAGS "-DUSE_LABEL"
+
 open_project ${hls_prj} -reset
 set_top fpga_powm
 
