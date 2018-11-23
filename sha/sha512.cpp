@@ -7,9 +7,15 @@
 #include <endian.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <type_traits>
 
 struct SHA512Hash {
   uint64_t hash[8];
+
+  bool operator==(const SHA512Hash& rhs)
+  {
+      return !memcmp(hash, rhs.hash, sizeof(uint64_t[8]));
+  }
 };
 
 
@@ -143,14 +149,67 @@ SHA512Hash sha512(const void *data, uint64_t nbytes) {
 }
 
 
+// Forward declare
+template<int N>
+struct Cracker;
 
+// Base case
+template <>
+struct Cracker<0> {
+  inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
+    // Try with adding a char
+    block[idx] = 0x80;
+    SHA512Hash curr = SHA512_INIT;
+    *((uint64_t*)(&block[128-sizeof(uint64_t)])) = htobe64(idx*8);
+    SHA512Hash digest = hashBlock(curr, (uint64_t*)block);
+
+    block[idx] = 0;
+
+    return digest == target;
+  }
+};
+
+
+
+template <int N>
+struct Cracker {
+  inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
+    if(Cracker<0>::crack(idx, block, dict, len, target)) {
+      return true;
+    }
+    // Try with adding a char
+    for (int i=0; i < len; i++) {
+      block[idx] = dict[i];
+      if(Cracker<N-1>::crack(idx+1, block, dict, len, target)) {
+        return true; //Match
+      }
+    }
+
+    block[idx] = 0;
+    return false;
+  }
+};
+
+
+
+
+
+// Check with echo -n "hello world" | sha512sum -t
 int main() {
-  const char s[] = "hello world";
-  char data[1234] = {};
-  SHA512Hash test = sha512(data, sizeof(data));
+  const char s[] = "hello w";
+  SHA512Hash target = sha512(s, strlen(s));
 
   for (int i=0; i < 8; i++) {
-    printf("%" PRIx64 "\n", test.hash[i]);
+    printf("%" PRIx64 "\n", target.hash[i]);
   }
+
+  printf("\n\n");
+
+  char block[128] = {};
+  char dict[] = {'a', 'b', 'c', 'd', 'h', ' ', 'e', 'l', 'o', 'w', 'o', 'r', 'l', 'd'};
+  if(Cracker<7>::crack(0, block, dict, sizeof(dict), target)) {
+    printf("Match: '%s'\n", block);
+  }
+
 
 }
