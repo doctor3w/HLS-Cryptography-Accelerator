@@ -193,7 +193,10 @@ class Bignum {
       // Check if qhat is too large (u - w < 0).
       bool is_trial = true;
     SEARCH:
-      while (is_trial) {
+      for (int foobar = 0; foobar < MAX_DIGITS; foobar++) {
+        if (!is_trial) {
+          break;
+        }
         int i = n;
       COMPARE:
         for (int y = 0; y < MAX_DIGITS; y++) {
