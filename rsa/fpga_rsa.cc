@@ -6,6 +6,8 @@
 typedef Bignum<2 * MAX_BIT_LEN / 32> RsaBignum;
 typedef ap_uint<2 * MAX_BIT_LEN> BigAp;
 
+const int SUPER_DUPER_FOO=MAX_BIT_LEN;
+
 ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
                                ap_uint<MAX_BIT_LEN> exponent,
                                ap_uint<MAX_BIT_LEN> modulus) {
@@ -24,6 +26,7 @@ ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
 
   b = b % m;
 POWM_LOOP: while (e > zero) {
+     #pragma HLS loop_tripcount min=0 max=SUPER_DUPER_FOO
     if (e[0] == 1) {
       result = (result * b) % m;
     }
