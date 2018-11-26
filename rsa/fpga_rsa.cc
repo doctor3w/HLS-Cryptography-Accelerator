@@ -23,7 +23,7 @@ ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
   RsaBignum zero(ap_zero);
 
   b = b % m;
-  while (e > zero) {
+POWM_LOOP: while (e > zero) {
     if (e[0] == 1) {
       result = (result * b) % m;
     }

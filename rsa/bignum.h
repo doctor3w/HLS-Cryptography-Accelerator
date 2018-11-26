@@ -154,12 +154,16 @@ class Bignum {
 
     // Normalize divisor (v[n-1] >= BASE/2).
     unsigned d = BITS;
+    Digit vn = v.digits.back();
   NORMALIZE:
-    for (Digit vn = v.digits.back(); vn != 0; vn >>= 1, --d)
-      ;
+    for (int magic = 0; magic < MAX_DIGITS; magic++) {
+     if (vn == 0) break;
+     vn >>= 1;
+     --d;
+    }
     v <<= d;
     r <<= d;
-    const Digit vn = v.digits.back();
+    vn = v.digits.back();
 
     // Ensure first single-digit quotient (u[m-1] < v[n-1]).
     r.digits.push_back(0);
@@ -249,10 +253,11 @@ class Bignum {
       digits.insert(0, n, 0);
       rhs -= n * BITS;
       Wigit k = 0;
-      for (int j = n; j < MAX_DIGITS; ++j) {
-        if (j >= digits.size()) break;
-        k |= static_cast<Wigit>(digits[j]) << rhs;
-        digits[j] = static_cast<Digit>(k);
+    HLS_IS_SO_BROKEN:
+      for (int j = 0; j < MAX_DIGITS; ++j) {
+        if (j + n >= digits.size()) break;
+        k |= static_cast<Wigit>(digits[j + n]) << rhs;
+        digits[j + n] = static_cast<Digit>(k);
         k >>= BITS;
       }
       if (k != 0) {
