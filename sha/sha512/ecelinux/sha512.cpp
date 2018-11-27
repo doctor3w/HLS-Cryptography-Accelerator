@@ -58,7 +58,7 @@ FIRST_W_LOOP:
 
 SECOND_W_LOOP:
   for (int i=16; i < 80; i++) {
-    #pragma HLS pipeline
+    #pragma HLS pipeline II=3
     W[i] = LSigma1(W[i-2]) + W[i-7] + LSigma0(W[i-15]) + W[i-16];
   }
   
