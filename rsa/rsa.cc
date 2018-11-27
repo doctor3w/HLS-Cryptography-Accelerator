@@ -83,13 +83,10 @@ void private_key_clear(private_key_t* ku) { mpz_clears(ku->n, ku->d, NULL); }
 void public_key_clear(public_key_t* kp) { mpz_clears(kp->n, kp->e, NULL); }
 
 void generate_keys(private_key_t* ku, public_key_t* kp, int bytes) {
-  mpz_t phi;
-  mpz_init(phi);
-  mpz_t two;
-  mpz_init_set_si(two, 2);
+  mpz_set_si(kp->e, STANDARD_E_VALUE);
 
-  mpz_t p, q;
-  mpz_inits(p, q, NULL);
+  mpz_t phi, p, q, gcd;
+  mpz_inits(phi, p, q, gcd, NULL);
   do {
     probable_prime(p, bytes * CHAR_BIT / 2);
     probable_prime(q, bytes * CHAR_BIT / 2);
@@ -98,22 +95,15 @@ void generate_keys(private_key_t* ku, public_key_t* kp, int bytes) {
     mpz_sub_ui(p, p, 1);
     mpz_sub_ui(q, q, 1);
     mpz_mul(phi, p, q);
-  } while (mpz_cmp_si(phi, 2) <= 0);
-  mpz_set(kp->n, ku->n);
-  mpz_clears(p, q, NULL);
-
-  mpz_t gcd;
-  mpz_init(gcd);
-  do {
-    random_mpz(kp->e, two, phi);
+    // e < phi && e > 2 must hold
+    // e is always > 2 though
     mpz_gcd(gcd, kp->e, phi);
-  } while (mpz_cmp_si(gcd, 1) != 0);
-  mpz_clear(gcd);
-
+    // gcd(e, phi) must not be 1
+  } while (mpz_cmp(kp->e, phi) >= 0 || mpz_cmp_si(gcd, 1) != 0);
+  
+  mpz_set(kp->n, ku->n);
   mpz_invert(ku->d, kp->e, phi);
-
-  mpz_clear(phi);
-  mpz_clear(two);
+  mpz_clears(phi, p, q, gcd, NULL);
 
   ku->bytes = bytes;
   kp->bytes = bytes;

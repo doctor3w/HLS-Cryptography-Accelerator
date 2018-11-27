@@ -2,6 +2,7 @@
 #include <cassert>
 #include <iostream>
 #include "bignum.h"
+#include "stdio.h"
 
 typedef Bignum<2 * MAX_BIT_LEN / 32> RsaBignum;
 typedef ap_uint<2 * MAX_BIT_LEN> BigAp;
@@ -25,13 +26,14 @@ ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
   RsaBignum zero(ap_zero);
 
   b = b % m;
-POWM_LOOP: while (e > zero) {
-     #pragma HLS loop_tripcount min=0 max=SUPER_DUPER_FOO
-    if (e[0] == 1) {
-      result = (result * b) % m;
+  POWM_LOOP: for (int i = 0; i < MAX_BIT_LEN; i++) {
+    if (e > zero) {
+      if (e[0] == 1) {
+        result = (result * b) % m;
+      }
+      e = e >> 1;
+      b = (b * b) % m;
     }
-    e = e >> 1;
-    b = (b * b) % m;
   }
   return result.to_ap_uint();
 }

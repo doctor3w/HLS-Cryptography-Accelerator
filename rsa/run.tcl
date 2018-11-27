@@ -12,8 +12,6 @@ create_clock -period 10
 
 csim_design
 csynth_design
-
-# We will skip C-RTL cosimulation for now
-#cosim_design
+cosim_design
 
 quit

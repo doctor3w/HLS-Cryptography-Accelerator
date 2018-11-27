@@ -26,9 +26,9 @@ class Bignum {
 
   ap_uint<MAX_DIGITS * BITS> to_ap_uint() {
     ap_uint<MAX_DIGITS* BITS> result = 0;
-    for (int i = 0; i < MAX_DIGITS; i++) {
+CONVERT_DIGITS: for (int i = 0; i < MAX_DIGITS; i++) {
       if (i >= digits.size()) break;
-      for (unsigned int b = 0; b < BITS; b++) {
+CONVERT_BITS: for (unsigned int b = 0; b < BITS; b++) {
         result[i * BITS + b] = (digits[i] >> b) & 1;
       }
     }
@@ -317,7 +317,7 @@ class Bignum {
     if (m != n) {
       return (m < n);
     }
-    for (int x = 0; x < MAX_DIGITS; x++) {
+COMPARE: for (int x = 0; x < MAX_DIGITS; x++) {
       n--;
       if (n == 0 || u.digits[n] != v.digits[n]) break;
     }
