@@ -2,9 +2,9 @@
 #include <cassert>
 #include <iostream>
 #include "bignum.h"
-#include "stdio.h"
 
-typedef Bignum<2 * MAX_BIT_LEN / 32> RsaBignum;
+const int BITS_PER_DIGIT = 128;
+typedef Bignum<2 * MAX_BIT_LEN / BITS_PER_DIGIT, BITS_PER_DIGIT> RsaBignum;
 typedef ap_uint<2 * MAX_BIT_LEN> BigAp;
 
 const int SUPER_DUPER_FOO=MAX_BIT_LEN;
@@ -16,14 +16,11 @@ ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
     return 0;
   }
 
-  ap_uint<MAX_BIT_LEN> other = 1;
   RsaBignum result(1);
   RsaBignum b(base);
   RsaBignum e(exponent);
   RsaBignum m(modulus);
-
-  ap_uint<32> ap_zero = 0;
-  RsaBignum zero(ap_zero);
+  RsaBignum zero(0);
 
   b = b % m;
   POWM_LOOP: for (int i = 0; i < MAX_BIT_LEN; i++) {

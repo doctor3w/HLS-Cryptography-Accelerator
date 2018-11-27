@@ -1,4 +1,4 @@
-set CFLAGS ""
+set CFLAGS "-DHLS_ENABLE_PRAGMAS=1"
 set hls_prj "rsa.prj"
 open_project ${hls_prj} -reset
 set_top fpga_powm
@@ -12,6 +12,6 @@ create_clock -period 10
 
 csim_design
 csynth_design
-cosim_design
+# cosim_design
 
 quit
