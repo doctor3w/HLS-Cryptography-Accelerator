@@ -115,7 +115,71 @@ SHA512Hash hashBlock(SHA512Hash inter, const uint64_t msg[16]) {
 
 
 
+SHA512Hash hashBlockShift(SHA512Hash inter, const uint64_t msg[16]) {
+  uint64_t a = inter.hash[0];
+  uint64_t b = inter.hash[1];
+  uint64_t c = inter.hash[2];
+  uint64_t d = inter.hash[3];
+  uint64_t e = inter.hash[4];
+  uint64_t f = inter.hash[5];
+  uint64_t g = inter.hash[6];
+  uint64_t h = inter.hash[7];
 
+  uint64_t W[16];
+
+  // Do first 16 rounds
+  for (int j=0; j < 16; j++) {
+    uint64_t wcurr = htobe64(msg[j]);
+    W[j] = wcurr;
+    uint64_t T1 = h + CSigma1(e) + Ch(e, f, g) + K[j] + wcurr;
+    uint64_t T2 = CSigma0(a) + Maj(a, b, c);
+    h = g;
+    g = f;
+    f = e;
+    e = d + T1;
+    d = c;
+    c = b;
+    b = a;
+    a = T1 + T2;
+  }
+
+  // Do last 64 rounds
+  for (int j=16; j < 80; j++) {
+    uint64_t wnext = LSigma1(W[14]) + W[9] + LSigma0(W[1]) + W[0];
+    // Shift register
+    for (int i=0; i < 16-1; i++) {
+      W[i] = W[i+1];
+    }
+    W[15] = wnext;
+
+    uint64_t T1 = h + CSigma1(e) + Ch(e, f, g) + K[j] + wnext;
+    uint64_t T2 = CSigma0(a) + Maj(a, b, c);
+    h = g;
+    g = f;
+    f = e;
+    e = d + T1;
+    d = c;
+    c = b;
+    b = a;
+    a = T1 + T2;
+  }
+
+  SHA512Hash out = inter;
+  out.hash[0] += a;
+  out.hash[1] += b;
+  out.hash[2] += c;
+  out.hash[3] += d;
+  out.hash[4] += e;
+  out.hash[5] += f;
+  out.hash[6] += g;
+  out.hash[7] += h;
+
+  return out;
+}
+
+
+
+template <SHA512Hash(*F)(SHA512Hash, const uint64_t[16])>
 SHA512Hash sha512(const void *data, uint64_t nbytes) {
   SHA512Hash curr = SHA512_INIT;
   uint8_t *cdata = (uint8_t*)data;
@@ -123,7 +187,7 @@ SHA512Hash sha512(const void *data, uint64_t nbytes) {
   uint64_t total = 0;
   while (total <= nbytes) {
     if (nbytes - total >= 128) {
-      curr = hashBlock(curr, (uint64_t*)(cdata + total));
+      curr = F(curr, (uint64_t*)(cdata + total));
     } else {
       uint8_t last[128];
       memset(last, 0, sizeof(last));
@@ -132,12 +196,12 @@ SHA512Hash sha512(const void *data, uint64_t nbytes) {
       last[remain] = 0x80;
       if (128 - (remain + 1) >= 2*sizeof(uint64_t)) { // We have room at the end
         *((uint64_t*)(&last[128-sizeof(uint64_t)])) = htobe64(nbytes*8);
-        curr = hashBlock(curr, (uint64_t*)last);
+        curr = F(curr, (uint64_t*)last);
       } else { // Hash as is, then do last block
-        curr = hashBlock(curr, (uint64_t*)last);
+        curr = F(curr, (uint64_t*)last);
         memset(last, 0, sizeof(last));
         *((uint64_t*)(&last[128-sizeof(uint64_t)])) = htobe64(nbytes*8);
-        curr = hashBlock(curr, (uint64_t*)last);
+        curr = F(curr, (uint64_t*)last);
       }
 
     }
@@ -147,69 +211,69 @@ SHA512Hash sha512(const void *data, uint64_t nbytes) {
 
   return curr;
 }
-
-
-// Forward declare
-template<int N>
-struct Cracker;
-
-// Base case
-template <>
-struct Cracker<0> {
-  inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
-    // Try with adding a char
-    block[idx] = 0x80;
-    SHA512Hash curr = SHA512_INIT;
-    *((uint64_t*)(&block[128-sizeof(uint64_t)])) = htobe64(idx*8);
-    SHA512Hash digest = hashBlock(curr, (uint64_t*)block);
-
-    block[idx] = 0;
-
-    return digest == target;
-  }
-};
-
-
-
-template <int N>
-struct Cracker {
-  inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
-    if(Cracker<0>::crack(idx, block, dict, len, target)) {
-      return true;
-    }
-    // Try with adding a char
-    for (int i=0; i < len; i++) {
-      block[idx] = dict[i];
-      if(Cracker<N-1>::crack(idx+1, block, dict, len, target)) {
-        return true; //Match
-      }
-    }
-
-    block[idx] = 0;
-    return false;
-  }
-};
-
-
+//
+//
+// // Forward declare
+// template<int N>
+// struct Cracker;
+//
+// // Base case
+// template <>
+// struct Cracker<0> {
+//   inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
+//     // Try with adding a char
+//     block[idx] = 0x80;
+//     SHA512Hash curr = SHA512_INIT;
+//     *((uint64_t*)(&block[128-sizeof(uint64_t)])) = htobe64(idx*8);
+//     SHA512Hash digest = hashBlock(curr, (uint64_t*)block);
+//
+//     block[idx] = 0;
+//
+//     return digest == target;
+//   }
+// };
+//
+//
+//
+// template <int N>
+// struct Cracker {
+//   inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
+//     if(Cracker<0>::crack(idx, block, dict, len, target)) {
+//       return true;
+//     }
+//     // Try with adding a char
+//     for (int i=0; i < len; i++) {
+//       block[idx] = dict[i];
+//       if(Cracker<N-1>::crack(idx+1, block, dict, len, target)) {
+//         return true; //Match
+//       }
+//     }
+//
+//     block[idx] = 0;
+//     return false;
+//   }
+// };
+//
+//
 
 
 
 // Check with echo -n "hello world" | sha512sum -t
 int main() {
   const char s[] = "hello w";
-  SHA512Hash target = sha512(s, strlen(s));
+  SHA512Hash target = sha512<hashBlockShift>(s, strlen(s));
 
   for (int i=0; i < 8; i++) {
     printf("%" PRIx64 "\n", target.hash[i]);
   }
 
-  printf("\n\n");
-
-  char block[128] = {};
-  char dict[] = {'a', 'b', 'c', 'd', 'h', ' ', 'e', 'l', 'o', 'w', 'o', 'r', 'l', 'd'};
-  if(Cracker<7>::crack(0, block, dict, sizeof(dict), target)) {
-    printf("Match: '%s'\n", block);
-  }
+  // printf("\n\n");
+  //
+  // char block[128] = {};
+  // char dict[] = {'a', 'b', 'c', 'd', 'h', ' ', 'e', 'l', 'o', 'w', 'o', 'r', 'l', 'd'};
+  // if(Cracker<7>::crack(0, block, dict, sizeof(dict), target)) {
+  //   printf("Match: '%s'\n", block);
+  // }
 
 
 }
