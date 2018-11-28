@@ -79,6 +79,7 @@ class Bignum {
   }
 
   friend Bignum operator*(const Bignum& u, const Bignum& v) {
+    /*
     const int m = u.size();
     const int n = v.size();
     Bignum w;
@@ -97,6 +98,8 @@ class Bignum {
       w.set_block(j + m, static_cast<Digit>(k));
     }
     return w;
+    */
+    return Bignum(u.digits * v.digits);
   }
 
   Bignum& operator*=(const Bignum& rhs) {
