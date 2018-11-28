@@ -7,7 +7,7 @@ const int BITS_PER_DIGIT = 128;
 typedef Bignum<2 * MAX_BIT_LEN / BITS_PER_DIGIT, BITS_PER_DIGIT> RsaBignum;
 typedef ap_uint<2 * MAX_BIT_LEN> BigAp;
 
-const int SUPER_DUPER_FOO=MAX_BIT_LEN;
+const int SUPER_DUPER_FOO = MAX_BIT_LEN;
 
 ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
                                ap_uint<MAX_BIT_LEN> exponent,
@@ -31,7 +31,8 @@ ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
   b = b % m;
   base = base % modulus;
   assert(b.to_ap_uint() == base);
-  POWM_LOOP: for (int i = 0; i < MAX_BIT_LEN; i++) {
+POWM_LOOP:
+  for (int i = 0; i < MAX_BIT_LEN; i++) {
     if (e > zero) {
       if (e[0] == 1) {
         result = (result * b) % m;

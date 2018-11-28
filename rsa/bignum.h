@@ -10,14 +10,12 @@
 template <int MAX_DIGITS, int BITS>
 class Bignum {
  public:
-  typedef ap_uint<MAX_DIGITS* BITS> BigAp;
-  typedef ap_uint<MAX_DIGITS* BITS> Internal;
+  typedef ap_uint<MAX_DIGITS * BITS> BigAp;
+  typedef ap_uint<MAX_DIGITS * BITS> Internal;
   typedef ap_uint<BITS> Digit;
-  typedef ap_uint<2*BITS> Wigit;
+  typedef ap_uint<2 * BITS> Wigit;
 
-  Bignum(BigAp value = 0) : digits(value) {
-    HLS_PRAGMA(inline);
-  }
+  Bignum(BigAp value = 0) : digits(value) { HLS_PRAGMA(inline); }
 
   BigAp to_ap_uint() {
     HLS_PRAGMA(inline);
@@ -54,14 +52,14 @@ class Bignum {
   void set_block(int i, Digit v) {
     HLS_PRAGMA(inline);
     if (i < MAX_DIGITS) {
-      digits(i * BITS + BITS - 1, i* BITS) = v(BITS - 1, 0);
+      digits(i * BITS + BITS - 1, i * BITS) = v(BITS - 1, 0);
     }
   }
-  
+
   Digit block(int i) const {
     HLS_PRAGMA(inline);
     if (i < MAX_DIGITS) {
-      return digits(i * BITS + BITS - 1, i* BITS);
+      return digits(i * BITS + BITS - 1, i * BITS);
     } else {
       return 0;
     }
@@ -169,9 +167,9 @@ class Bignum {
       if (j == 0) break;
       j--;
       // Estimate quotient digit.
-      Wigit a =
-          (static_cast<Wigit>(r.block(j + n)) << BITS | static_cast<Wigit>(r.block(j + n - 1))) /
-          vn;
+      Wigit a = (static_cast<Wigit>(r.block(j + n)) << BITS |
+                 static_cast<Wigit>(r.block(j + n - 1))) /
+                vn;
       Wigit qhat = a < MAX_DIGIT ? a : MAX_DIGIT;
 
       // Compute partial product (w = qhat * v).
@@ -279,15 +277,18 @@ class Bignum {
 
   friend bool operator>(const Bignum& u, const Bignum& v) {
     HLS_PRAGMA(inline);
-          return (v < u); }
+    return (v < u);
+  }
 
-  friend bool operator<=(const Bignum& u, const Bignum& v) { 
+  friend bool operator<=(const Bignum& u, const Bignum& v) {
     HLS_PRAGMA(inline);
-          return !(v < u); }
+    return !(v < u);
+  }
 
-  friend bool operator>=(const Bignum& u, const Bignum& v) { 
+  friend bool operator>=(const Bignum& u, const Bignum& v) {
     HLS_PRAGMA(inline);
-          return !(u < v); }
+    return !(u < v);
+  }
 
   friend bool operator==(const Bignum& u, const Bignum& v) {
     HLS_PRAGMA(inline);

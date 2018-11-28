@@ -100,7 +100,7 @@ void generate_keys(private_key_t* ku, public_key_t* kp, int bytes) {
     mpz_gcd(gcd, kp->e, phi);
     // gcd(e, phi) must not be 1
   } while (mpz_cmp(kp->e, phi) >= 0 || mpz_cmp_si(gcd, 1) != 0);
-  
+
   mpz_set(kp->n, ku->n);
   mpz_invert(ku->d, kp->e, phi);
   mpz_clears(phi, p, q, gcd, NULL);
