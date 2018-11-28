@@ -211,50 +211,50 @@ SHA512Hash sha512(const void *data, uint64_t nbytes) {
 
   return curr;
 }
-//
-//
-// // Forward declare
-// template<int N>
-// struct Cracker;
-//
-// // Base case
-// template <>
-// struct Cracker<0> {
-//   inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
-//     // Try with adding a char
-//     block[idx] = 0x80;
-//     SHA512Hash curr = SHA512_INIT;
-//     *((uint64_t*)(&block[128-sizeof(uint64_t)])) = htobe64(idx*8);
-//     SHA512Hash digest = hashBlock(curr, (uint64_t*)block);
-//
-//     block[idx] = 0;
-//
-//     return digest == target;
-//   }
-// };
-//
-//
-//
-// template <int N>
-// struct Cracker {
-//   inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
-//     if(Cracker<0>::crack(idx, block, dict, len, target)) {
-//       return true;
-//     }
-//     // Try with adding a char
-//     for (int i=0; i < len; i++) {
-//       block[idx] = dict[i];
-//       if(Cracker<N-1>::crack(idx+1, block, dict, len, target)) {
-//         return true; //Match
-//       }
-//     }
-//
-//     block[idx] = 0;
-//     return false;
-//   }
-// };
-//
-//
+
+
+// Forward declare
+template<int N>
+struct Cracker;
+
+// Base case
+template <>
+struct Cracker<0> {
+  inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
+    // Try with adding a char
+    block[idx] = 0x80;
+    SHA512Hash curr = SHA512_INIT;
+    *((uint64_t*)(&block[128-sizeof(uint64_t)])) = htobe64(idx*8);
+    SHA512Hash digest = hashBlock(curr, (uint64_t*)block);
+
+    block[idx] = 0;
+
+    return digest == target;
+  }
+};
+
+
+
+template <int N>
+struct Cracker {
+  inline static bool crack(int idx, char *block, const char *dict, int len, const SHA512Hash& target) {
+    if(Cracker<0>::crack(idx, block, dict, len, target)) {
+      return true;
+    }
+    // Try with adding a char
+    for (int i=0; i < len; i++) {
+      block[idx] = dict[i];
+      if(Cracker<N-1>::crack(idx+1, block, dict, len, target)) {
+        return true; //Match
+      }
+    }
+
+    block[idx] = 0;
+    return false;
+  }
+};
+
+
 
 
 
@@ -267,13 +267,13 @@ int main() {
     printf("%" PRIx64 "\n", target.hash[i]);
   }
 
-  // printf("\n\n");
-  //
-  // char block[128] = {};
-  // char dict[] = {'a', 'b', 'c', 'd', 'h', ' ', 'e', 'l', 'o', 'w', 'o', 'r', 'l', 'd'};
-  // if(Cracker<7>::crack(0, block, dict, sizeof(dict), target)) {
-  //   printf("Match: '%s'\n", block);
-  // }
+  printf("\n\n");
+
+  char block[128] = {};
+  char dict[] = {'a', 'b', 'c', 'd', 'h', ' ', 'e', 'l', 'o', 'w', 'o', 'r', 'l', 'd'};
+  if(Cracker<7>::crack(0, block, dict, sizeof(dict), target)) {
+    printf("Match: '%s'\n", block);
+  }
 
 
 }
