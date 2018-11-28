@@ -179,7 +179,7 @@ SHA512Hash hashBlockShift(SHA512Hash inter, const uint64_t msg[16]) {
 
 
 
-template <SHA512Hash(*F)(SHA512Hash, const uint64_t[16])>
+template <SHA512Hash(*F)(SHA512Hash, const uint64_t[16]) = hashBlockShift>
 SHA512Hash sha512(const void *data, uint64_t nbytes) {
   SHA512Hash curr = SHA512_INIT;
   uint8_t *cdata = (uint8_t*)data;
@@ -261,7 +261,7 @@ struct Cracker {
 // Check with echo -n "hello world" | sha512sum -t
 int main() {
   const char s[] = "hello w";
-  SHA512Hash target = sha512<hashBlockShift>(s, strlen(s));
+  SHA512Hash target = sha512(s, strlen(s));
 
   for (int i=0; i < 8; i++) {
     printf("%" PRIx64 "\n", target.hash[i]);
