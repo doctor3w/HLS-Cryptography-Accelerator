@@ -27,17 +27,34 @@ public:
   SHA512Hasher();
   void reset();
   // len <= 128
-  template <int MAX_LEN=64>
-  void update(const void *msgp, uint8_t len);
   SHA512Hash digest();
   SHA512ByteHash byte_digest();
 
+  template <int MAX_LEN=64>
+  void update(const void *msgp, uint8_t len) {
+    assert (len <= MAX_LEN);
+    uint8_t *msg = (uint8_t*)msgp;
+    uint8_t remain = BLOCK_SIZE - bsize;
+    uint8_t tocpy = MIN(remain, len);
+    memcpy_u8<MAX_LEN>(buf+bsize, msg, tocpy);
+
+    if (tocpy < len || len == remain) { // Not enough room or full
+      hashBlock();
+      bsize = len - tocpy;
+      memcpy_u8<MAX_LEN>(buf, msg + tocpy, bsize);
+    } else { // Enough room
+      bsize += len;
+    }
+
+    total += len;
+  }
+
   static const uint8_t HASH_SIZE = 64;
 
-
 private:
+  static const uint8_t BLOCK_SIZE = 128;
   SHA512Hash state;
-  uint8_t buf[128]; // TODO: This should be partitioned in chunks of 8
+  uint8_t buf[BLOCK_SIZE]; // TODO: This should be partitioned in chunks of 8
   uint8_t bsize;
   uint64_t total;
 
@@ -53,5 +70,27 @@ private:
   static inline uint64_t CSigma1(uint64_t x) { return Sn(x, 14)^Sn(x, 18)^Sn(x, 41); }
   static inline uint64_t LSigma0(uint64_t x) { return Sn(x, 1)^Sn(x, 8)^Rn(x, 7); }
   static inline uint64_t LSigma1(uint64_t x) { return Sn(x, 19)^Sn(x, 61)^Rn(x, 6); }
+
+
+  template <int MAX_LEN>
+  static inline void memcpy_u8(uint8_t *dest, const uint8_t *src, int nbytes) {
+    // TODO: unroll this
+  LOOP:
+    for (int i=0; i < MAX_LEN; i++) {
+      if (i < nbytes) {
+          dest[i] = src[i];
+      }
+    }
+  }
+
+  template <int MAX_LEN>
+  static inline void memset_u8(uint8_t *dest, uint8_t val, int nbytes) {
+  LOOP:
+    for (int i=0; i < MAX_LEN; i++) {
+      if (i < nbytes) {
+          dest[i] = val;
+      }
+    }
+  }
 
 };
