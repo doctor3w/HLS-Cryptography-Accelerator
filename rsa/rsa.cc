@@ -8,9 +8,9 @@
 #include "rsa_config.h"
 
 #ifdef FPGA_REAL
-#include "host.h"
 #include "ap_int_adapters.h"
 #include "fpga_rsa.h"
+#include "host.h"
 #elif defined FPGA_SIM
 #include "fpga_rsa.h"
 #endif
@@ -145,7 +145,7 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   to_buf(buf + MAX_BIT_LEN / 32, e_ap);
   to_buf(buf + 2 * MAX_BIT_LEN / 32, n_ap);
   fpga_host.write((char*)buf, sizeof(buf));
-  fpga_host.read((char*)buf, MAX_BIT_LEN/32);
+  fpga_host.read((char*)buf, MAX_BIT_LEN / 32);
   ap_to_mpz(out, from_buf<MAX_BIT_LEN>(buf));
 #endif
 }

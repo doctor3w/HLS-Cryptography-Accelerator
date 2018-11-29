@@ -2,12 +2,11 @@
 #include <cassert>
 #include <iostream>
 
-
 void dut(hls::stream<bit32_t>& strm_in, hls::stream<bit32_t>& strm_out) {
-   RsaNum base = read_rsa_num(strm_in);
-   RsaNum exponent = read_rsa_num(strm_in);
-   RsaNum modulus = read_rsa_num(strm_in);
-   write_rsa_num(fpga_powm(base, exponent, modulus), strm_out);
+  RsaNum base = read_rsa_num(strm_in);
+  RsaNum exponent = read_rsa_num(strm_in);
+  RsaNum modulus = read_rsa_num(strm_in);
+  write_rsa_num(fpga_powm(base, exponent, modulus), strm_out);
 }
 
 RsaNum read_rsa_num(hls::stream<bit32_t>& in) {
@@ -26,9 +25,7 @@ void write_rsa_num(RsaNum num, hls::stream<bit32_t>& out) {
   }
 }
 
-RsaNum fpga_powm(RsaNum base,
-                               RsaNum exponent,
-                               RsaNum modulus) {
+RsaNum fpga_powm(RsaNum base, RsaNum exponent, RsaNum modulus) {
   if (modulus == 1) {
     return 0;
   }

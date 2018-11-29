@@ -1,9 +1,9 @@
 #pragma once
 
 #include "big_ap_int.h"
-#include "rsa_config.h"
-#include "hls_stream.h"
 #include "bignum.h"
+#include "hls_stream.h"
+#include "rsa_config.h"
 
 const int BITS_PER_DIGIT = 128;
 typedef Bignum<2 * MAX_BIT_LEN / BITS_PER_DIGIT, BITS_PER_DIGIT> RsaBignum;
@@ -15,6 +15,4 @@ void dut(hls::stream<bit32_t>& strm_in, hls::stream<bit32_t>& strm_out);
 RsaNum read_rsa_num(hls::stream<bit32_t>& in);
 void write_rsa_num(RsaNum num, hls::stream<bit32_t>& out);
 
-RsaNum fpga_powm(RsaNum base,
-                               RsaNum exponent,
-                               RsaNum modulus);
+RsaNum fpga_powm(RsaNum base, RsaNum exponent, RsaNum modulus);

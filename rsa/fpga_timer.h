@@ -3,10 +3,10 @@
 //---------------------------------------------------------
 #ifndef __TIMER_H__
 #define __TIMER_H__
-#include <time.h>
-#include <sys/time.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+#include <time.h>
 
 #define TIMER_ON
 
@@ -20,75 +20,73 @@
 // - When the timer is destructed it prints stats to stdout
 //---------------------------------------------------------
 class FpgaTimer {
+#ifdef TIMER_ON
 
-  #ifdef TIMER_ON
+  char binName[50];
+  unsigned nCalls;
+  timeval ts_start;
+  float totalTime;
 
-    char binName[50];
-    unsigned nCalls;
-    timeval ts_start;
-    float totalTime;
-    
-    public:
-      //------------------------------------------------------------------
-      // constructor
-      //------------------------------------------------------------------
-      Timer (const char* Name="", bool On=false) {
-        if (On) {
-          // record the start time
-          gettimeofday(&ts_start, NULL);
-          nCalls = 1;
-        }
-        else {
-          nCalls = 0;
-        }
-        totalTime = 0;	
-        strcpy(binName, Name);
-      }
+ public:
+  //------------------------------------------------------------------
+  // constructor
+  //------------------------------------------------------------------
+  Timer(const char* Name = "", bool On = false) {
+    if (On) {
+      // record the start time
+      gettimeofday(&ts_start, NULL);
+      nCalls = 1;
+    } else {
+      nCalls = 0;
+    }
+    totalTime = 0;
+    strcpy(binName, Name);
+  }
 
-      //------------------------------------------------------------------
-      // destructor
-      //------------------------------------------------------------------
-      ~Timer () {
-        // on being destroyed, print the average and total time
-        if (nCalls > 0) {
-          printf ("%-20s: ", binName);
-          printf ("%6d calls; ", nCalls);
-          printf ("%7.3f msecs total time\n", 1000*totalTime);
-          //printf ("%7.4f msecs average time;\n", 1000*totalTime/nCalls);
-        }
-      }
-      
-      //------------------------------------------------------------------
-      // start timer
-      //------------------------------------------------------------------
-      void start() {
-        // record start time
-        gettimeofday(&ts_start, NULL);
-        nCalls++;
-      }
-      
-      //------------------------------------------------------------------
-      // stop timer
-      //------------------------------------------------------------------
-      void stop() {
-        // get current time, add elapsed time to totalTime
-        timeval ts_curr;
-        gettimeofday(&ts_curr, NULL);
-        totalTime += float(ts_curr.tv_sec - ts_start.tv_sec) +
-                     float(ts_curr.tv_usec)*1e-6 - float(ts_start.tv_usec)*1e-6;
-      }
+  //------------------------------------------------------------------
+  // destructor
+  //------------------------------------------------------------------
+  ~Timer() {
+    // on being destroyed, print the average and total time
+    if (nCalls > 0) {
+      printf("%-20s: ", binName);
+      printf("%6d calls; ", nCalls);
+      printf("%7.3f msecs total time\n", 1000 * totalTime);
+      // printf ("%7.4f msecs average time;\n", 1000*totalTime/nCalls);
+    }
+  }
 
-  #else
+  //------------------------------------------------------------------
+  // start timer
+  //------------------------------------------------------------------
+  void start() {
+    // record start time
+    gettimeofday(&ts_start, NULL);
+    nCalls++;
+  }
 
-    //--------------------------------------------------------------------
-    // all methods do nothing if TIMER_ON is not set
-    //--------------------------------------------------------------------
-    public:
-      Timer (const char* Name, bool On=true) {}
-      void start() {}
-      void stop() {}
+  //------------------------------------------------------------------
+  // stop timer
+  //------------------------------------------------------------------
+  void stop() {
+    // get current time, add elapsed time to totalTime
+    timeval ts_curr;
+    gettimeofday(&ts_curr, NULL);
+    totalTime += float(ts_curr.tv_sec - ts_start.tv_sec) +
+                 float(ts_curr.tv_usec) * 1e-6 - float(ts_start.tv_usec) * 1e-6;
+  }
 
-  #endif
+#else
+
+  //--------------------------------------------------------------------
+  // all methods do nothing if TIMER_ON is not set
+  //--------------------------------------------------------------------
+ public:
+  Timer(const char* Name, bool On = true) {}
+  void start() {}
+  void stop() {}
+
+#endif
 };
 
 #endif
