@@ -56,59 +56,65 @@ static roundkey_t keyExpansion(aes_key_t key) {
 //  }
   // copy in key
   roundKey(KEYLEN * 8 - 1, 0) = key;
-  for (i = Nk; i < Nb * (Nr + 1); ++i) {
+EXPAND_LOOP:  for (i = Nk; i < Nb * (Nr + 1); ++i) {
     k = (i - 1) * 4;
-    tempa = roundKey((k + 4) * 8 - 1, k * 8); // grab 32 bits into temp
+    tempa = roundKey.range((k + 4) * 8 - 1, k * 8); // grab 32 bits into temp
 
     if (i % Nk == 0) {
       // RotWord
-      temp = tempa(7, 0);
-      tempa(7, 0) = tempa(15, 8);
-      tempa(15, 8) = tempa(23, 16);
-      tempa(23, 16) = tempa(31, 24);
+      temp = tempa.range(7, 0);
+      tempa(7, 0) = tempa.range(15, 8);
+      tempa(15, 8) = tempa.range(23, 16);
+      tempa(23, 16) = tempa.range(31, 24);
       tempa(31, 24) = temp;
 
       // SubWord
-      tempa(7, 0)   = sBoxVal(tempa(7, 0));
-      tempa(15, 8)  = sBoxVal(tempa(15, 8));
-      tempa(23, 16) = sBoxVal(tempa(23, 16));
-      tempa(31, 24) = sBoxVal(tempa(31, 24));
+      tempa(7, 0)   = sBoxVal(tempa.range(7, 0));
+      tempa(15, 8)  = sBoxVal(tempa.range(15, 8));
+      tempa(23, 16) = sBoxVal(tempa.range(23, 16));
+      tempa(31, 24) = sBoxVal(tempa.range(31, 24));
   
       // Rcon
-      tempa(7, 0) = tempa(7, 0) ^ rcon[i/Nk];
+      tempa(7, 0) = tempa.range(7, 0) ^ rcon[i/Nk];
     }
 #if defined(AES_256) && (AES_256 == 1)
     if (i % Nk == 4) {
-      tempa(7, 0)   = sBoxVal(tempa(7, 0));
-      tempa(15, 8)  = sBoxVal(tempa(15, 8));
-      tempa(23, 16) = sBoxVal(tempa(23, 16));
-      tempa(31, 24) = sBoxVal(tempa(31, 24)); 
+      tempa(7, 0)   = sBoxVal(tempa.range(7, 0));
+      tempa(15, 8)  = sBoxVal(tempa.range(15, 8));
+      tempa(23, 16) = sBoxVal(tempa.range(23, 16));
+      tempa(31, 24) = sBoxVal(tempa.range(31, 24)); 
     }
 #endif
     j = i * 4;
     k = (i - Nk) * 4;
-    roundKey((j + 4) * 8 - 1, j * 8) = roundKey((k + 4) * 8 - 1, k * 8) ^ tempa;
+    roundKey((j + 4) * 8 - 1, j * 8) = roundKey.range((k + 4) * 8 - 1, k * 8) ^ tempa;
   }
   return roundKey;
 }
 
 static state_t AddRoundKey(uint8_t round, state_t state, roundkey_t roundKey) {
   uint8_t i,j;
-  for (i = 0; i < 4; i++) {
+  bit32_t a, b;
+ADD_ROUND:  for (i = 0; i < 4; i++) {
+    #pragma HLS unroll
     // add roundkey to each state column
     // s[r][c] ^= w_{round * Nb + c}
     j = round * Nb * 32 + i * Nb * 8;
-    state((i + 1) * 32 - 1, i * 32) ^= roundKey(j + Nb * 8 - 1, j);
+    a = state.range(i * 32 + 31, i * 32);
+    b = roundKey.range(j + Nb * 8 - 1, j);
+    state((i + 1) * 32 - 1, i * 32) = a ^ b;
   }
   return state;
 }
 
 static state_t SubBytes(state_t state) {
   uint8_t i, j, k;
-  for (i = 0; i < 4; ++i) {
-    for (j = 0; j < 4; ++j) {
+SUBBYTE_1:  for (i = 0; i < 4; ++i) {
+    #pragma HLS unroll
+SUBBYTE_2:    for (j = 0; j < 4; ++j) {
+      #pragma HLS unroll
       k = i * 32 + j * 8;
-      state(k + 7, k) = sBoxVal(state(k + 7, k));
+      state(k + 7, k) = sBoxVal(state.range(k + 7, k));
     }
   }
   return state;
@@ -119,26 +125,26 @@ static state_t ShiftRows(state_t state) {
   // no rotate of row 0
   
   // rotate row 1
-  temp = state(8 + 7, 8); // state[0][1]
-  state(8 + 7, 8) = state(40 + 7, 40);
-  state(40 + 7, 40) = state(72 + 7, 72);
-  state(72 + 7, 72) = state(104 + 7, 104);
+  temp = state.range(8 + 7, 8); // state[0][1]
+  state(8 + 7, 8) = state.range(40 + 7, 40);
+  state(40 + 7, 40) = state.range(72 + 7, 72);
+  state(72 + 7, 72) = state.range(104 + 7, 104);
   state(104 + 7, 104) = temp;
   
   // rotate row 2
-  temp = state(16 + 7, 16);
-  state(16 + 7, 16) = state(80 + 7, 80);
+  temp = state.range(16 + 7, 16);
+  state(16 + 7, 16) = state.range(80 + 7, 80);
   state(80 + 7, 80) = temp;
   
-  temp = state(48 + 7, 48);
-  state(48 + 7, 48) = state(112 + 7, 112);
+  temp = state.range(48 + 7, 48);
+  state(48 + 7, 48) = state.range(112 + 7, 112);
   state(112 + 7, 112) = temp;
 
   // rotate row 3
-  temp = state(24 + 7, 24);
-  state(24 + 7, 24) = state(120 + 7, 120);
-  state(120 + 7, 120) = state(88 + 7, 88);
-  state(88 + 7, 88) = state(56 + 7, 56);
+  temp = state.range(24 + 7, 24);
+  state(24 + 7, 24) = state.range(120 + 7, 120);
+  state(120 + 7, 120) = state.range(88 + 7, 88);
+  state(88 + 7, 88) = state.range(56 + 7, 56);
   state(56 + 7, 56) = temp;
 
   return state;
@@ -151,25 +157,26 @@ static bit8_t xtime(bit8_t x) {
 static state_t MixColumns(state_t state) {
   uint8_t i, c_off;
   bit8_t all, comb, s0c;
-  for (i = 0; i < 4; i++) {
+MIXCOL:  for (i = 0; i < 4; i++) {
+    #pragma HLS unroll
     c_off = i * 32;
-    s0c = state(c_off + 31, c_off);
-    all = state(c_off + 7, c_off) ^ state(c_off + 15, c_off + 8) 
-          ^ state(c_off + 23, c_off + 16) ^ state(c_off + 31, c_off + 24);
+    s0c = state.range(c_off + 31, c_off);
+    all = state.range(c_off + 7, c_off) ^ state.range(c_off + 15, c_off + 8) 
+          ^ state.range(c_off + 23, c_off + 16) ^ state.range(c_off + 31, c_off + 24);
     
-    comb = state(c_off + 7, c_off) ^ state(c_off + 15, c_off + 8); 
+    comb = state.range(c_off + 7, c_off) ^ state.range(c_off + 15, c_off + 8); 
     comb = xtime(comb);
     state(c_off + 7, c_off) = comb ^ all;
     
-    comb = state(c_off + 15, c_off + 8) ^ state(c_off + 23, c_off + 16);
+    comb = state.range(c_off + 15, c_off + 8) ^ state.range(c_off + 23, c_off + 16);
     comb = xtime(comb);
     state(c_off + 15, c_off + 8) = comb ^ all;
 
-    comb = state(c_off + 23, c_off + 16) ^ state(c_off + 31, c_off + 24);
+    comb = state.range(c_off + 23, c_off + 16) ^ state.range(c_off + 31, c_off + 24);
     comb = xtime(comb);
     state(c_off + 23, c_off + 16) = comb ^ all;
 
-    comb = state(c_off + 31, c_off + 24) ^ s0c;
+    comb = state.range(c_off + 31, c_off + 24) ^ s0c;
     comb = xtime(comb);
     state(c_off + 31, c_off + 24) = comb ^ all;
   }
@@ -183,11 +190,11 @@ static state_t Cipher(state_t state, roundkey_t roundKey) {
     state = SubBytes(state);
     state = ShiftRows(state);
     state = MixColumns(state);
-    state = AddRoundKey(round, state, RoundKey);
+    state = AddRoundKey(round, state, roundKey);
   }
   state = SubBytes(state);
   state = ShiftRows(state);
-  state = AddRoundKey(Nr, state, RoundKey);
+  state = AddRoundKey(Nr, state, roundKey);
   return state;
 }
 
@@ -208,10 +215,8 @@ void dut(
   bit128_t buf;
   
   // first read key
-  for (i = 0; i < Nk; i++) {
-    read = strm_in.read();
-    key(i * 32 + 31, i * 32) = read;
-  }
+  for (i = 0; i < Nk; i++)
+    key(i * 32 + 31, i * 32) = strm_in.read();
   w = keyExpansion(key);
 
   // read IV

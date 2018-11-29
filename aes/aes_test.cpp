@@ -50,7 +50,7 @@ int main(){
   hls::stream<bit32_t> aes_in;
   hls::stream<bit32_t> aes_out;
 
-  bit32_t outData[4];
+  bit32_t outData[Nb * NUM_BLOCKS];
   float correct = 0.0;
   
   Timer timer("aes encr");
@@ -89,8 +89,8 @@ int main(){
   for (i = 0; i < Nb * NUM_BLOCKS; i++)
     outData[i] = aes_out.read();
 
-  if (0 == memcmp((char*)out, (char*)outData, BLOCKLEN)) {
-    correct++;
+  if (0 == memcmp((char*)out, (char*)outData, BLOCKLEN * NUM_BLOCKS)) {
+    correct += 1.0;
     //std::cout << "Correct!" << std::endl;
   }
 
