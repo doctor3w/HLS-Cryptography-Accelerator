@@ -50,6 +50,7 @@ static const uint8_t BLOCK_SIZE = 128;
 static inline uint64_t read64(const uint8_t *arr, int sidx) {
   uint64_t ret = 0;
   // TODO: unroll this
+LOOP:
   for (int i=0; i < sizeof(uint64_t); i++) {
     ret <<= 8;
     ret |= arr[sidx + i];
@@ -60,12 +61,14 @@ static inline uint64_t read64(const uint8_t *arr, int sidx) {
 
 static inline void memcpy_u8(uint8_t *dest, const uint8_t *src, int nbytes) {
   // TODO: unroll this
+LOOP:
   for (int i=0; i < nbytes; i++) {
     dest[i] = src[i];
   }
 }
 
 static inline void memset_u8(uint8_t *dest, uint8_t val, int nbytes) {
+LOOP:
   for (int i=0; i < nbytes; i++) {
     dest[i] = val;
   }
@@ -111,6 +114,7 @@ SHA512Hash SHA512Hasher::digest() {
   }
   uint64_t size = total*8;
   // TODO unroll this
+LOOP_U64:
   for (int i=0; i < sizeof(uint64_t); i++) {
     buf[(BLOCK_SIZE - 1) - i] = (size & 0xff);
     size >>= 8;
@@ -123,8 +127,10 @@ SHA512Hash SHA512Hasher::digest() {
 SHA512ByteHash SHA512Hasher::byte_digest() {
   digest();
   SHA512ByteHash ret;
+LOOP_DIGEST:
   for (int i=0; i < 8; i++) {
     uint64_t curr = state.hash[i];
+LOOP_U64:
     for (int j=0; j < sizeof(uint64_t); j++) {
       ret.hash[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
       curr >>= 8;
