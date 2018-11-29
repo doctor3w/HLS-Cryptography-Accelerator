@@ -34,7 +34,7 @@
 #endif
 
 typedef ap_uint<KEYLEN * 8> aes_key_t;
-typedef ap_uint<KEYLEN_EXP * 8> roundkey_t;
+typedef ap_uint<128> roundkey_t[KEYLEN_EXP * 8 / 128];
 
 void dut(
     hls::stream<bit32_t> &strm_in,
