@@ -219,7 +219,7 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
       break;
     }
     int off = loc + (bytes - (mpz_sizeinbase(c, 2) + 8 - 1) / 8);
-    memset(cipher + loc, 0, off-loc);
+    memset(cipher + loc, 0, off - loc);
     mpz_export(cipher + off, NULL, 1, sizeof(char), 0, 0, c);
     memcpy(iv, cipher + loc, bytes);
     printf("after encrypt:");
