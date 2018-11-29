@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ap_int.h>
+#include "big_ap_int.h"
 #include <gmp.h>
 
 template <int BIT_LEN>

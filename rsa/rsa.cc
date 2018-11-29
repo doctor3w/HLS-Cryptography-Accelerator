@@ -3,10 +3,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include "fpga_rsa.h"
 #include "mpz_adapters.h"
 //#include <sys/random.h>
 #include "rsa_config.h"
+
+#ifdef FPGA_REAL
+// TODO
+#elif defined FPGA_SIM
+#include "fpga_rsa.h"
+#endif
 
 typedef struct {
   mpz_t n;
@@ -115,22 +120,37 @@ void xor_array(char* a, const char* b, int len) {
   }
 }
 
+#if defined FPGA_REAL || defined FPGA_SIM
 void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
-  ap_uint<MAX_BIT_LEN> data_ap = mpz_to_ap<MAX_BIT_LEN>(data);
-  ap_uint<MAX_BIT_LEN> n_ap = mpz_to_ap<MAX_BIT_LEN>(n);
-  ap_uint<MAX_BIT_LEN> e_ap = mpz_to_ap<MAX_BIT_LEN>(e);
+  RsaNum data_ap = mpz_to_ap<MAX_BIT_LEN>(data);
+  RsaNum n_ap = mpz_to_ap<MAX_BIT_LEN>(n);
+  RsaNum e_ap = mpz_to_ap<MAX_BIT_LEN>(e);
 
-  ap_to_mpz(out, fpga_powm(data_ap, e_ap, n_ap));
+#ifdef FPGA_SIM
+  hls::stream<uint32_t> in_stream, out_stream;
+  write_rsa_num(data_ap, in_stream);
+  write_rsa_num(e_ap, in_stream);
+  write_rsa_num(n_ap, in_stream);
+  fpga_powm_stream(in_stream, out_stream);
+  ap_to_mpz(out, read_rsa_num(out_stream));
+#endif
 }
+#endif
 
 void block_encrypt(mpz_t c, mpz_t m, public_key_t kp) {
-  // mpz_powm(c, m, kp.e, kp.n);
+#if defined FPGA_REAL || defined FPGA_SIM
   fpga_rsa_block_adapter(c, m, kp.n, kp.e);
+#else
+  mpz_powm(c, m, kp.e, kp.n);
+#endif
 }
 
 void block_decrypt(mpz_t m, mpz_t c, private_key_t ku) {
-  // mpz_powm(m, c, ku.d, ku.n);
+#if defined FPGA_REAL || defined FPGA_SIM
   fpga_rsa_block_adapter(m, c, ku.n, ku.d);
+#else
+  mpz_powm(m, c, ku.d, ku.n);
+#endif
 }
 
 int encrypt(char* cipher, int cipher_len, const char* message, int length,

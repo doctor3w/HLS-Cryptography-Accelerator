@@ -1,7 +1,7 @@
 set CFLAGS "-DHLS_ENABLE_PRAGMAS=1"
 set hls_prj "rsa.prj"
 open_project ${hls_prj} -reset
-set_top fpga_powm
+set_top fpga_powm_stream
 
 add_files fpga_rsa.cc -cflags $CFLAGS
 add_files -tb rsa.cc -cflags $CFLAGS

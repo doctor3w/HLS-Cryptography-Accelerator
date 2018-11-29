@@ -1,3 +1,5 @@
 *.prj
 vivado_hls.log
 rsa
+rsa-sim
+rsa-host

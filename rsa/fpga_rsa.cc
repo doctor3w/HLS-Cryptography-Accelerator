@@ -1,17 +1,34 @@
 #include "fpga_rsa.h"
 #include <cassert>
 #include <iostream>
-#include "bignum.h"
 
-const int BITS_PER_DIGIT = 128;
-typedef Bignum<2 * MAX_BIT_LEN / BITS_PER_DIGIT, BITS_PER_DIGIT> RsaBignum;
-typedef ap_uint<2 * MAX_BIT_LEN> BigAp;
 
-const int SUPER_DUPER_FOO = MAX_BIT_LEN;
+void fpga_powm_stream(hls::stream<uint32_t>& in, hls::stream<uint32_t>& out) {
+   RsaNum base = read_rsa_num(in);
+   RsaNum exponent = read_rsa_num(in);
+   RsaNum modulus = read_rsa_num(in);
+   write_rsa_num(fpga_powm(base, exponent, modulus), out);
+}
 
-ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
-                               ap_uint<MAX_BIT_LEN> exponent,
-                               ap_uint<MAX_BIT_LEN> modulus) {
+RsaNum read_rsa_num(hls::stream<uint32_t>& in) {
+  HLS_PRAGMA(inline);
+  RsaNum result = 0;
+  for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
+    result(x * 32 + 31, x * 32) = in.read();
+  }
+  return result;
+}
+
+void write_rsa_num(RsaNum num, hls::stream<uint32_t>& out) {
+  HLS_PRAGMA(inline);
+  for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
+    out.write(num(x * 32 + 31, x * 32));
+  }
+}
+
+RsaNum fpga_powm(RsaNum base,
+                               RsaNum exponent,
+                               RsaNum modulus) {
   if (modulus == 1) {
     return 0;
   }
