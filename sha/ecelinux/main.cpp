@@ -18,22 +18,24 @@ using namespace std;
 //----------------------------------------------------------
 
 void dut(
-    hls::stream<uint8_t> &strm_in,
-    hls::stream<uint8_t> &strm_out
+    hls::stream<ap_uint<32> > &strm_in,
+    hls::stream<ap_uint<32> > &strm_out
 )
 {	
-	char passwd[16];
-	for (int i=0; i < 6; i++) {
-		passwd[i] = strm_in.read();
+	char passwd[MAX_PWD_LEN];
+        int i;
+	for (i=0; i < sizeof(passwd); i++) {
+	  passwd[i] = strm_in.read();
+          if (passwd[i] == 0) break;
 	}
 
      	char hash[HASH_LEN];
 	//const char passwd[] = "This is my password!";
 	const char salt[] = "8n./Hzqd";
-	calc(hash, passwd, sizeof(passwd)-1, salt, sizeof(salt)-1);
+	calc(hash, passwd, i, salt, sizeof(salt)-1);
 	
 
-	for (int i=0; i < 86; i++) {
+	for (int i=0; i < HASH_LEN; i++) {
 		strm_out.write(hash[i]);        
         }
 

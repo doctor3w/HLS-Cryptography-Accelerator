@@ -24,7 +24,7 @@ open_solution "solution1"
 set_part {xc7z020clg484-1}
 
 # Target clock period is 10ns
-create_clock -period 10
+create_clock -period 9
 
 ### You can insert your own directives here ###
 # Partition the array so 64_bit accesses are fast
@@ -39,6 +39,8 @@ set_directive_unroll SHA512Hasher::byte_digest/LOOP_DIGEST
 set_directive_array_partition SHA512Hasher::hashBlock W -type complete
 set_directive_pipeline SHA512Hasher::hashBlock/LOOP16
 set_directive_pipeline SHA512Hasher::hashBlock/LOOP64
+# Currently this causes timing violations:
+# set_directive_unroll SHA512Hasher::hashBlock/LOOP64 -factor 2
 set_directive_unroll SHA512Hasher::hashBlock/LOOP_SHIFT
 # set_directive_array_partition SHA512Hasher::hashBlock K	-type complete
 
@@ -49,5 +51,5 @@ csim_design -O
 # Synthesize the design
 csynth_design
 # Co-simulate the design
-#cosim_design
+cosim_design
 exit
