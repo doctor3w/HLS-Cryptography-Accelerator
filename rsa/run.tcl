@@ -1,7 +1,7 @@
-set CFLAGS "-DHLS_ENABLE_PRAGMAS=1"
+set CFLAGS "-DHLS_ENABLE_PRAGMAS=1 -DFPGA_SIM"
 set hls_prj "rsa.prj"
 open_project ${hls_prj} -reset
-set_top fpga_powm
+set_top dut
 
 add_files fpga_rsa.cc -cflags $CFLAGS
 add_files -tb rsa.cc -cflags $CFLAGS
@@ -12,6 +12,6 @@ create_clock -period 10
 
 csim_design
 csynth_design
-cosim_design
+# cosim_design
 
 quit

@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ -z $1 ]]; then
+  echo "Usage: ./run_bitstream <project>"
+  exit 1
+fi
+
 #-------------------------------------------------------------------------
 # Variables
 #-------------------------------------------------------------------------
@@ -10,11 +15,11 @@ XILLYBUS_TAR="/classes/ece5775/zedboard/zedboard_project.tgz"
 WORKDIR="./zedboard_project"
 
 # HLS generated verilog files directory
-VERILOG_DIR="sha512cracker.prj/solution1/syn/verilog"
+VERILOG_DIR="$1.prj/solution1/syn/verilog"
 
 # The generated bitstream file
 GENFILE="$WORKDIR/xillybus/vivado/xillydemo.runs/impl_1/xillydemo.bit"
-OUTFILE="xillydemo.bit"
+OUTFILE="$1.bit"
 
 # Check here for synthesis errors
 LOGFILE="$WORKDIR/xillybus/vivado/xillydemo.runs/synth_1/runme.log"

@@ -7,8 +7,6 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-#define MAX_PWD_LEN 32
-#define MAX_SALT_LEN 32
 
 struct SHA512Hash {
   uint64_t hash[8];
@@ -35,7 +33,7 @@ public:
 
 private:
   SHA512Hash state;
-  uint64_t buf[16];
+  uint8_t buf[128]; // TODO: This should be partitioned in chunks of 8
   uint8_t bsize;
   uint64_t total;
 

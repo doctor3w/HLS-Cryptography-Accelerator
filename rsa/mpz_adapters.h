@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ap_int.h>
 #include <gmp.h>
+#include "big_ap_int.h"
 
 template <int BIT_LEN>
 ap_uint<BIT_LEN> mpz_to_ap(mpz_t x) {

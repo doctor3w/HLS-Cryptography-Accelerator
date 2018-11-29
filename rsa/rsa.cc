@@ -3,10 +3,17 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include "fpga_rsa.h"
 #include "mpz_adapters.h"
 //#include <sys/random.h>
 #include "rsa_config.h"
+
+#ifdef FPGA_REAL
+#include "ap_int_adapters.h"
+#include "fpga_rsa.h"
+#include "host.h"
+#elif defined FPGA_SIM
+#include "fpga_rsa.h"
+#endif
 
 typedef struct {
   mpz_t n;
@@ -115,22 +122,49 @@ void xor_array(char* a, const char* b, int len) {
   }
 }
 
-void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
-  ap_uint<MAX_BIT_LEN> data_ap = mpz_to_ap<MAX_BIT_LEN>(data);
-  ap_uint<MAX_BIT_LEN> n_ap = mpz_to_ap<MAX_BIT_LEN>(n);
-  ap_uint<MAX_BIT_LEN> e_ap = mpz_to_ap<MAX_BIT_LEN>(e);
+#ifdef FPGA_REAL
+Host* fpga_host;
+#endif
 
-  ap_to_mpz(out, fpga_powm(data_ap, e_ap, n_ap));
+#if defined FPGA_REAL || defined FPGA_SIM
+void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
+  RsaNum data_ap = mpz_to_ap<MAX_BIT_LEN>(data);
+  RsaNum n_ap = mpz_to_ap<MAX_BIT_LEN>(n);
+  RsaNum e_ap = mpz_to_ap<MAX_BIT_LEN>(e);
+
+#ifdef FPGA_SIM
+  hls::stream<bit32_t> in_stream, out_stream;
+  write_rsa_num(data_ap, in_stream);
+  write_rsa_num(e_ap, in_stream);
+  write_rsa_num(n_ap, in_stream);
+  dut(in_stream, out_stream);
+  ap_to_mpz(out, read_rsa_num(out_stream));
+#else
+  uint32_t buf[3 * MAX_BIT_LEN / 32];
+  to_buf(buf, data_ap);
+  to_buf(buf + MAX_BIT_LEN / 32, e_ap);
+  to_buf(buf + 2 * MAX_BIT_LEN / 32, n_ap);
+  fpga_host->write((char*)buf, sizeof(buf));
+  fpga_host->read((char*)buf, MAX_BIT_LEN / 32);
+  ap_to_mpz(out, from_buf<MAX_BIT_LEN>(buf));
+#endif
 }
+#endif
 
 void block_encrypt(mpz_t c, mpz_t m, public_key_t kp) {
-  // mpz_powm(c, m, kp.e, kp.n);
+#if defined FPGA_REAL || defined FPGA_SIM
   fpga_rsa_block_adapter(c, m, kp.n, kp.e);
+#else
+  mpz_powm(c, m, kp.e, kp.n);
+#endif
 }
 
 void block_decrypt(mpz_t m, mpz_t c, private_key_t ku) {
-  // mpz_powm(m, c, ku.d, ku.n);
+#if defined FPGA_REAL || defined FPGA_SIM
   fpga_rsa_block_adapter(m, c, ku.n, ku.d);
+#else
+  mpz_powm(m, c, ku.d, ku.n);
+#endif
 }
 
 int encrypt(char* cipher, int cipher_len, const char* message, int length,
@@ -174,6 +208,7 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
       break;
     }
     int off = loc + (bytes - (mpz_sizeinbase(c, 2) + 8 - 1) / 8);
+    memset(cipher + loc, 0, off-loc);
     mpz_export(cipher + off, NULL, 1, sizeof(char), 0, 0, c);
     memcpy(iv, cipher + loc, bytes);
     loc += bytes;
@@ -207,6 +242,7 @@ int decrypt(char* message, int message_len, const char* cipher, int length,
     block_decrypt(m, c, ku);
     memset(buf, 0, chunk_size);
     int off = chunk_size - (mpz_sizeinbase(m, 2) + 8 - 1) / 8;
+    memset(buf, 0, off);
     mpz_export(buf + off, NULL, 1, sizeof(char), 0, 0, m);
 
     if (use_cbc) {
@@ -240,6 +276,13 @@ int main() {
   private_key_init(&ku);
   public_key_init(&kp);
 
+#ifdef FPGA_REAL
+  fpga_host = new Host();
+  if (!fpga_host->open()) {
+    printf("Error with host\n");
+    exit(-1);
+  }
+#endif
   generate_keys(&ku, &kp, MAX_BYTES);
   printf("---------------Private Key----------------\n");
   printf("n = %s\n", mpz_get_str(NULL, 16, kp.n));
@@ -270,4 +313,8 @@ int main() {
   }
   printf("Decrypted: %d\n", len);
   printf("%s\n", result);
+
+#ifdef FPGA_REAL
+  delete fpga_host;
+#endif
 }

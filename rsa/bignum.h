@@ -64,7 +64,7 @@ class Bignum {
     HLS_PRAGMA(inline);
   SIZE:
     for (int result = MAX_DIGITS - 1; result >= 0; result--) {
-      HLS_PRAGMA(unroll);
+      HLS_PRAGMA(unroll factor=2);
       if (block(result) != 0) {
         return result + 1;
       }
@@ -117,7 +117,7 @@ class Bignum {
     Digit vn = v.block(n - 1);
   NORMALIZE:
     for (int magic = 0; magic < BITS; magic++) {
-      HLS_PRAGMA(unroll);
+      HLS_PRAGMA(unroll factor = 2);
       if (vn == 0) break;
       vn >>= 1;
       --d;

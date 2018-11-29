@@ -1,8 +1,18 @@
 #pragma once
 
 #include "big_ap_int.h"
+#include "bignum.h"
+#include "hls_stream.h"
 #include "rsa_config.h"
 
-ap_uint<MAX_BIT_LEN> fpga_powm(ap_uint<MAX_BIT_LEN> base,
-                               ap_uint<MAX_BIT_LEN> exponent,
-                               ap_uint<MAX_BIT_LEN> modulus);
+const int BITS_PER_DIGIT = 32;
+typedef Bignum<2 * MAX_BIT_LEN / BITS_PER_DIGIT, BITS_PER_DIGIT> RsaBignum;
+typedef ap_uint<MAX_BIT_LEN> RsaNum;
+typedef ap_uint<32> bit32_t;
+
+void dut(hls::stream<bit32_t>& strm_in, hls::stream<bit32_t>& strm_out);
+
+RsaNum read_rsa_num(hls::stream<bit32_t>& in);
+void write_rsa_num(RsaNum num, hls::stream<bit32_t>& out);
+
+RsaNum fpga_powm(RsaNum base, RsaNum exponent, RsaNum modulus);
