@@ -10,20 +10,26 @@ extern void dut(hls::stream<ap_uint<32> >&, hls::stream<ap_uint<32> >&);
 
 int main() {
   // Note: if using crypt, prepend with $6$
-  const char salt[] = "8n./Hzqd";
-  const char pass[] = "This is my password!";
+  const char salt[MAX_SALT_LEN] = "8n./Hzqd";
+  const char pass[MAX_PWD_LEN] = "This is my password!";
   hls::stream<ap_uint<32> > in;
   hls::stream<ap_uint<32> > out;
-  for (int i=0; i < strlen(pass); i++) {
+  // Write salt
+  for (int i=0; i < strlen(salt) + 1; i++) {
+    in.write(salt[i]);
+  }
+
+  for (int i=0; i < strlen(pass) + 1; i++) {
     in.write(pass[i]);
   }
-  in.write(0);
+
   dut(in, out);
+  
   char hash[HASH_LEN+1];
   hash[HASH_LEN] = 0;
   for (int i=0; i < HASH_LEN; i++) {
     hash[i] = out.read();
-  } 
+  }
   printf("Hash: %s\n", hash);
   return 0;
 }

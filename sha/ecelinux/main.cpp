@@ -21,22 +21,31 @@ void dut(
     hls::stream<ap_uint<32> > &strm_in,
     hls::stream<ap_uint<32> > &strm_out
 )
-{	
+{
 	char passwd[MAX_PWD_LEN];
-        int i;
-	for (i=0; i < sizeof(passwd); i++) {
-	  passwd[i] = strm_in.read();
-          if (passwd[i] == 0) break;
-	}
+  char salt[MAX_SALT_LEN];
+  int s,p;
 
-     	char hash[HASH_LEN];
-	//const char passwd[] = "This is my password!";
-	const char salt[] = "8n./Hzqd";
-	calc(hash, passwd, i, salt, sizeof(salt)-1);
-	
+  // First read in the salt
+  for (int s=0; s < MAX_SALT_LEN; s++) {
+    salt[s] = strm_in.read();
+    if (!salt[s]) break;
+  }
 
+  // Read in pass
+  for (int p=0; p < MAX_PWD_LEN; p++) {
+    passwd[p] = strm_in.read();
+    if (passwd[p]) break;
+  }
+
+  char hash[HASH_LEN];
+
+  // Compute the hash
+	calc(hash, passwd, p, salt, s);
+
+  // Write the result out
 	for (int i=0; i < HASH_LEN; i++) {
-		strm_out.write(hash[i]);        
-        }
+		strm_out.write(hash[i]);
+  }
 
 }
