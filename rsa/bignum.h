@@ -80,6 +80,7 @@ SIZE: for (int result = MAX_DIGITS - 1; result >= 0; result--) {
       Wigit k = 0;
     INNER:
       for (int i = 0; i < MAX_DIGITS; ++i) {
+        HLS_PRAGMA(unroll factor = 2);
         if (i >= m) break;
         k += static_cast<Wigit>(u.block(i)) * v.block(j) + w.block(i + j);
         w.set_block(i + j, static_cast<Digit>(k));
@@ -101,7 +102,7 @@ SIZE: for (int result = MAX_DIGITS - 1; result >= 0; result--) {
     r.digits = digits;
     const int n = v.size();
 ZERO: for (int i = 0; i < MAX_DIGITS; i++) {
-      HLS_PRAGMA(unroll);
+      HLS_PRAGMA(unroll factor = 2);
       q.set_block(i, 0);
     }
     if (size() < n) {
@@ -113,6 +114,7 @@ ZERO: for (int i = 0; i < MAX_DIGITS; i++) {
     Digit vn = v.block(n - 1);
   NORMALIZE:
     for (int magic = 0; magic < BITS; magic++) {
+      HLS_PRAGMA(unroll);
       if (vn == 0) break;
       vn >>= 1;
       --d;
@@ -140,6 +142,7 @@ ZERO: for (int i = 0; i < MAX_DIGITS; i++) {
       Wigit k = 0;
     PARTIAL:
       for (int i = 0; i < MAX_DIGITS; ++i) {
+        HLS_PRAGMA(unroll factor = 2);
         if (i >= n) break;
         k += qhat * v.block(i);
         w.set_block(i, static_cast<Digit>(k));
@@ -157,6 +160,7 @@ ZERO: for (int i = 0; i < MAX_DIGITS; i++) {
         int i = n;
       COMPARE:
         for (int y = 0; y < MAX_DIGITS; y++) {
+          HLS_PRAGMA(unroll factor = 2);
           if (i == 0 || r.block(j + i) != w.block(i)) {
             break;
           }
@@ -168,6 +172,7 @@ ZERO: for (int i = 0; i < MAX_DIGITS; i++) {
           k = 0;
         ADJUST:
           for (int i = 0; i < MAX_DIGITS; ++i) {
+            HLS_PRAGMA(unroll factor = 2);
             if (i >= n) break;
             k = k + w.block(i) - v.block(i);
             w.set_block(i, static_cast<Digit>(k));
@@ -182,6 +187,7 @@ ZERO: for (int i = 0; i < MAX_DIGITS; i++) {
       k = 0;
     REM:
       for (int i = 0; i < MAX_DIGITS; ++i) {
+        HLS_PRAGMA(unroll factor = 2);
         if (i >= n) break;
         k = k + r.block(j + i) - w.block(i);
         r.set_block(j + i, static_cast<Digit>(k));
@@ -209,6 +215,7 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
       const int n = rhs / BITS;
     EXPAND:
       for (int x = MAX_DIGITS - 1; x >= 0; x--) {
+        HLS_PRAGMA(unroll factor=2);
         if (x < n) break;
         set_block(x, block(x - n));
       }
@@ -216,6 +223,7 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
       Wigit k = 0;
     SHIFT:
       for (int j = 0; j < MAX_DIGITS; ++j) {
+        HLS_PRAGMA(unroll factor=2);
         if (j + n >= size()) break;
         k |= static_cast<Wigit>(block(j + n)) << rhs;
         set_block(j + n, static_cast<Digit>(k));
@@ -239,12 +247,14 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
     if (n >= size()) {
     CLEAR:
       for (int i = 0; i < MAX_DIGITS; i++) {
+        HLS_PRAGMA(unroll factor=2);
         set_block(i, 0);
       }
     } else {
       int s = size();
     SHRINK:
       for (int x = 0; x <= MAX_DIGITS; x++) {
+        HLS_PRAGMA(unroll factor=2);
         if (x >= s - n) {
           set_block(x, 0);
         } else {
@@ -256,6 +266,7 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
       int j = s + n;
     SHIFT:
       for (int x = 0; x < MAX_DIGITS; x++) {
+        HLS_PRAGMA(unroll factor=2);
         if (j == 0) break;
         j--;
         k = k << BITS | block(j);
@@ -274,6 +285,7 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
     }
   COMPARE:
     for (int x = 0; x < MAX_DIGITS; x++) {
+      HLS_PRAGMA(unroll factor=2);
       n--;
       if (n == 0 || u.block(n) != v.block(n)) break;
     }
