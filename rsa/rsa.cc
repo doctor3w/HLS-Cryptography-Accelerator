@@ -123,7 +123,7 @@ void xor_array(char* a, const char* b, int len) {
 }
 
 #ifdef FPGA_REAL
-Host fpga_host;
+Host* fpga_host;
 #endif
 
 #if defined FPGA_REAL || defined FPGA_SIM
@@ -144,8 +144,8 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   to_buf(buf, data_ap);
   to_buf(buf + MAX_BIT_LEN / 32, e_ap);
   to_buf(buf + 2 * MAX_BIT_LEN / 32, n_ap);
-  fpga_host.write((char*)buf, sizeof(buf));
-  fpga_host.read((char*)buf, MAX_BIT_LEN / 32);
+  fpga_host->write((char*)buf, sizeof(buf));
+  fpga_host->read((char*)buf, MAX_BIT_LEN / 32);
   ap_to_mpz(out, from_buf<MAX_BIT_LEN>(buf));
 #endif
 }
@@ -275,7 +275,8 @@ int main() {
   public_key_init(&kp);
 
 #ifdef FPGA_REAL
-  if (!fpga_host.open()) {
+  fpga_host = new Host();
+  if (!fpga_host->open()) {
     printf("Error with host\n");
     exit(-1);
   }
@@ -310,4 +311,8 @@ int main() {
   }
   printf("Decrypted: %d\n", len);
   printf("%s\n", result);
+
+#ifdef FPGA_REAL
+  delete fpga_host;
+#endif
 }
