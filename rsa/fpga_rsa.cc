@@ -3,14 +3,14 @@
 #include <iostream>
 
 
-void fpga_powm_stream(hls::stream<uint32_t>& in, hls::stream<uint32_t>& out) {
-   RsaNum base = read_rsa_num(in);
-   RsaNum exponent = read_rsa_num(in);
-   RsaNum modulus = read_rsa_num(in);
-   write_rsa_num(fpga_powm(base, exponent, modulus), out);
+void dut(hls::stream<bit32_t>& strm_in, hls::stream<bit32_t>& strm_out) {
+   RsaNum base = read_rsa_num(strm_in);
+   RsaNum exponent = read_rsa_num(strm_in);
+   RsaNum modulus = read_rsa_num(strm_in);
+   write_rsa_num(fpga_powm(base, exponent, modulus), strm_out);
 }
 
-RsaNum read_rsa_num(hls::stream<uint32_t>& in) {
+RsaNum read_rsa_num(hls::stream<bit32_t>& in) {
   HLS_PRAGMA(inline);
   RsaNum result = 0;
   for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
@@ -19,7 +19,7 @@ RsaNum read_rsa_num(hls::stream<uint32_t>& in) {
   return result;
 }
 
-void write_rsa_num(RsaNum num, hls::stream<uint32_t>& out) {
+void write_rsa_num(RsaNum num, hls::stream<bit32_t>& out) {
   HLS_PRAGMA(inline);
   for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
     out.write(num(x * 32 + 31, x * 32));

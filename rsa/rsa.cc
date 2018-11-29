@@ -8,7 +8,9 @@
 #include "rsa_config.h"
 
 #ifdef FPGA_REAL
-// TODO
+#include "host.h"
+#include "ap_int_adapters.h"
+#include "fpga_rsa.h"
 #elif defined FPGA_SIM
 #include "fpga_rsa.h"
 #endif
@@ -120,6 +122,10 @@ void xor_array(char* a, const char* b, int len) {
   }
 }
 
+#ifdef FPGA_REAL
+Host fpga_host;
+#endif
+
 #if defined FPGA_REAL || defined FPGA_SIM
 void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   RsaNum data_ap = mpz_to_ap<MAX_BIT_LEN>(data);
@@ -127,12 +133,20 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   RsaNum e_ap = mpz_to_ap<MAX_BIT_LEN>(e);
 
 #ifdef FPGA_SIM
-  hls::stream<uint32_t> in_stream, out_stream;
+  hls::stream<bit32_t> in_stream, out_stream;
   write_rsa_num(data_ap, in_stream);
   write_rsa_num(e_ap, in_stream);
   write_rsa_num(n_ap, in_stream);
-  fpga_powm_stream(in_stream, out_stream);
+  dut(in_stream, out_stream);
   ap_to_mpz(out, read_rsa_num(out_stream));
+#else
+  uint32_t buf[3 * MAX_BIT_LEN / 32];
+  to_buf(buf, data_ap);
+  to_buf(buf + MAX_BIT_LEN / 32, e_ap);
+  to_buf(buf + 2 * MAX_BIT_LEN / 32, n_ap);
+  fpga_host.write((char*)buf, sizeof(buf));
+  fpga_host.read((char*)buf, MAX_BIT_LEN/32);
+  ap_to_mpz(out, from_buf<MAX_BIT_LEN>(buf));
 #endif
 }
 #endif
@@ -260,6 +274,12 @@ int main() {
   private_key_init(&ku);
   public_key_init(&kp);
 
+#ifdef FPGA_REAL
+  if (!fpga_host.open()) {
+    printf("Error with host\n");
+    exit(-1);
+  }
+#endif
   generate_keys(&ku, &kp, MAX_BYTES);
   printf("---------------Private Key----------------\n");
   printf("n = %s\n", mpz_get_str(NULL, 16, kp.n));
