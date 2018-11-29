@@ -1,6 +1,6 @@
 #pragma once
 
-// Adapter from:
+// Adapted from (very heavily modified):
 // https://github.com/possibly-wrong/precision/blob/master/math_Unsigned.h
 
 #include <stdint.h>
@@ -31,7 +31,7 @@ class Bignum {
   BigAp to_ap_uint() {
     HLS_PRAGMA(inline off);
     BigAp result = 0;
-    for (int x = 0; x < MAX_DIGITS; x++) {
+CONVERT: for (int x = 0; x < MAX_DIGITS; x++) {
       HLS_PRAGMA(unroll);
       result(x * BITS + BITS - 1, x * BITS) = block(x);
     }
@@ -39,7 +39,7 @@ class Bignum {
   }
 
   int operator[](int index) const {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     return block(index / BITS)[index % BITS];
   }
 
@@ -61,7 +61,7 @@ class Bignum {
 
   int size() const {
     HLS_PRAGMA(inline);
-    for (int result = MAX_DIGITS - 1; result >= 0; result--) {
+SIZE: for (int result = MAX_DIGITS - 1; result >= 0; result--) {
       HLS_PRAGMA(unroll);
       if (block(result) != 0) {
         return result + 1;
@@ -100,7 +100,7 @@ class Bignum {
   void divide(Bignum v, Bignum& q, Bignum& r) const {
     r.digits = digits;
     const int n = v.size();
-    for (int i = 0; i < MAX_DIGITS; i++) {
+ZERO: for (int i = 0; i < MAX_DIGITS; i++) {
       HLS_PRAGMA(unroll);
       q.set_block(i, 0);
     }
@@ -189,7 +189,7 @@ class Bignum {
       }
     }
 
-    for (int x = 0; x < MAX_DIGITS; x++) {
+CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
       if (x >= n) {
         r.set_block(x, 0);
       }

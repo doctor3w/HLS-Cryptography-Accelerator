@@ -3,10 +3,9 @@
 #include <iostream>
 #include "bignum.h"
 
-const int BITS_PER_DIGIT = 32;
+const int BITS_PER_DIGIT = 128;
 typedef Bignum<2 * MAX_BIT_LEN / BITS_PER_DIGIT, BITS_PER_DIGIT> RsaBignum;
 typedef ap_uint<2 * MAX_BIT_LEN> BigAp;
-// typedef BigAp RsaBignum;
 
 const int SUPER_DUPER_FOO = MAX_BIT_LEN;
 
