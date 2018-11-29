@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include "big_ap_int.h"
 #include "pragmas.h"
- 
+
 template <typename T, int LEN>
 struct Array {
   T data[LEN];
@@ -18,10 +18,11 @@ class Bignum {
   typedef ap_uint<MAX_DIGITS * BITS> BigAp;
   typedef ap_uint<BITS> Digit;
   typedef ap_uint<2 * BITS> Wigit;
-  
+
   Bignum(BigAp value = 0) {
     HLS_PRAGMA(inline);
-INIT: for (int x = 0; x < MAX_DIGITS; x++) {
+  INIT:
+    for (int x = 0; x < MAX_DIGITS; x++) {
       HLS_PRAGMA(unroll);
       set_block(x, value(x * BITS + BITS - 1, x * BITS));
     }
@@ -99,10 +100,10 @@ INIT: for (int x = 0; x < MAX_DIGITS; x++) {
   void divide(Bignum v, Bignum& q, Bignum& r) const {
     r.digits = digits;
     const int n = v.size();
-      for (int i = 0; i < MAX_DIGITS; i++) {
-        HLS_PRAGMA(unroll);
-        q.set_block(i, 0);
-      }
+    for (int i = 0; i < MAX_DIGITS; i++) {
+      HLS_PRAGMA(unroll);
+      q.set_block(i, 0);
+    }
     if (size() < n) {
       return;
     }
@@ -204,26 +205,27 @@ INIT: for (int x = 0; x < MAX_DIGITS; x++) {
   }
 
   Bignum& operator<<=(int rhs) {
-    if (block(size() - 1) != 0 && rhs != 0) {                                                               
-      const int n = rhs / BITS;                                                                         
-EXPAND: for (int x = MAX_DIGITS - 1; x >= 0; x--) {
+    if (block(size() - 1) != 0 && rhs != 0) {
+      const int n = rhs / BITS;
+    EXPAND:
+      for (int x = MAX_DIGITS - 1; x >= 0; x--) {
         if (x < n) break;
         set_block(x, block(x - n));
       }
-      rhs -= n * BITS;                                                                                  
-      Wigit k = 0;                                                                                      
-    SHIFT:                                                                                              
-      for (int j = 0; j < MAX_DIGITS; ++j) {                                                            
-        if (j + n >= size()) break;                                                              
-        k |= static_cast<Wigit>(block(j + n)) << rhs;                                                  
+      rhs -= n * BITS;
+      Wigit k = 0;
+    SHIFT:
+      for (int j = 0; j < MAX_DIGITS; ++j) {
+        if (j + n >= size()) break;
+        k |= static_cast<Wigit>(block(j + n)) << rhs;
         set_block(j + n, static_cast<Digit>(k));
-        k >>= BITS;                                                                                     
-      }                                                                                                 
-      if (k != 0) {                                                                                     
-        set_block(size(), (static_cast<Digit>(k)));                                                        
-      }                                                                                                 
-    }                                                                                                   
-    return *this;          
+        k >>= BITS;
+      }
+      if (k != 0) {
+        set_block(size(), (static_cast<Digit>(k)));
+      }
+    }
+    return *this;
   }
 
   friend Bignum operator>>(Bignum u, int v) {
@@ -233,45 +235,49 @@ EXPAND: for (int x = MAX_DIGITS - 1; x >= 0; x--) {
   }
 
   Bignum& operator>>=(int rhs) {
-    const int n = rhs / BITS;                                                                           
+    const int n = rhs / BITS;
     if (n >= size()) {
-CLEAR: for (int i = 0; i < MAX_DIGITS; i++) {
+    CLEAR:
+      for (int i = 0; i < MAX_DIGITS; i++) {
         set_block(i, 0);
-      }                                                                           
+      }
     } else {
-      int s = size();                                                                                           
-SHRINK: for (int x = 0; x <= MAX_DIGITS; x++) {
+      int s = size();
+    SHRINK:
+      for (int x = 0; x <= MAX_DIGITS; x++) {
         if (x >= s - n) {
           set_block(x, 0);
         } else {
           set_block(x, block(x + n));
         }
       }
-      rhs -= n * BITS;                                                                                  
-      Wigit k = 0;                                                                                      
+      rhs -= n * BITS;
+      Wigit k = 0;
       int j = s + n;
-SHIFT: for (int x = 0; x < MAX_DIGITS; x++) {                                                            
-        if (j == 0) break;                                                                              
-        j--;                                                                                            
+    SHIFT:
+      for (int x = 0; x < MAX_DIGITS; x++) {
+        if (j == 0) break;
+        j--;
         k = k << BITS | block(j);
         set_block(j, static_cast<Digit>(k >> rhs));
-        k = static_cast<Digit>(k);                                                                      
-      }                                                                                                 
-    }                                                                                                   
-    return *this;  
+        k = static_cast<Digit>(k);
+      }
+    }
+    return *this;
   }
 
   friend bool operator<(const Bignum& u, const Bignum& v) {
- const int m = u.size();                                                       
-    int n = v.size();                                                                            
-    if (m != n) {                                                                                       
-      return (m < n);                                                                                   
-    }                                                                                                   
-COMPARE: for (int x = 0; x < MAX_DIGITS; x++) {                                                         
-      n--;                                                                                              
-      if (n == 0 || u.block(n) != v.block(n)) break;                                                  
-    }                                                                                                   
-    return (u.block(n) < v.block(n));      
+    const int m = u.size();
+    int n = v.size();
+    if (m != n) {
+      return (m < n);
+    }
+  COMPARE:
+    for (int x = 0; x < MAX_DIGITS; x++) {
+      n--;
+      if (n == 0 || u.block(n) != v.block(n)) break;
+    }
+    return (u.block(n) < v.block(n));
   }
 
   friend bool operator>(const Bignum& u, const Bignum& v) {
