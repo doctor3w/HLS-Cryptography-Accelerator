@@ -1,4 +1,5 @@
 #include "fpga_rsa.h"
+#include "pragmas.h"
 #include <cassert>
 #include <iostream>
 
@@ -12,7 +13,8 @@ void dut(hls::stream<bit32_t>& strm_in, hls::stream<bit32_t>& strm_out) {
 RsaNum read_rsa_num(hls::stream<bit32_t>& in) {
   HLS_PRAGMA(inline);
   RsaNum result = 0;
-  for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
+READ_LOOP: for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
+    HLS_PRAGMA(unroll);
     result(x * 32 + 31, x * 32) = in.read();
   }
   return result;
@@ -20,12 +22,14 @@ RsaNum read_rsa_num(hls::stream<bit32_t>& in) {
 
 void write_rsa_num(RsaNum num, hls::stream<bit32_t>& out) {
   HLS_PRAGMA(inline);
-  for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
+WRITE_LOOP: for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
+    HLS_PRAGMA(unroll);
     out.write(num(x * 32 + 31, x * 32));
   }
 }
 
 RsaNum fpga_powm(RsaNum base, RsaNum exponent, RsaNum modulus) {
+  HLS_PRAGMA(inline);
   if (modulus == 1) {
     return 0;
   }
