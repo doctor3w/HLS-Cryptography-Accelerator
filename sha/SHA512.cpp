@@ -2,7 +2,6 @@
 // https://akkadia.org/drepper/SHA-crypt.txt
 //g++ -std=c++11  sha256_code_release/sha256_sse4.o  sha256_code_release/sha256_avx2_rorx2.o sha256_code_release/sha256_avx1.o sha256_code_release/sha256_avx2_rorx8.o sha2.cpp
 
-#include <endian.h>
 #include <assert.h>
 #include "SHA512.h"
 
@@ -47,6 +46,15 @@ static const uint64_t K[80] = {
 
 static const uint8_t BLOCK_SIZE = 128;
 
+// Unroll completely
+static inline uint64_t read64(const uint8_t *arr, int sidx) {
+  uint64_t ret = 0;
+  for (int i=0; i < sizeof(uint64_t); i++) {
+    ret <<= 8;
+    ret |= arr[sidx + i];
+  }
+  return ret;
+}
 
 SHA512Hasher::SHA512Hasher() {
   reset();
@@ -64,7 +72,7 @@ void SHA512Hasher::update(const void *msgp, uint8_t len) {
   uint8_t *msg = (uint8_t*)msgp;
   uint8_t remain = BLOCK_SIZE - bsize;
   uint8_t tocpy = MIN(remain, len);
-  memcpy(((uint8_t*)buf)+bsize, msg, tocpy);
+  memcpy(buf+bsize, msg, tocpy);
 
   if (tocpy < len || len == remain) { // Not enough room or full
     hashBlock();
@@ -79,14 +87,19 @@ void SHA512Hasher::update(const void *msgp, uint8_t len) {
 
 
 SHA512Hash SHA512Hasher::digest() {
-  ((uint8_t*)buf)[bsize++] = 0x80;
+  buf[bsize++] = 0x80;
   // zero out buffer
-  memset(((uint8_t*)buf) + bsize, 0, BLOCK_SIZE - bsize);
+  memset(buf + bsize, 0, BLOCK_SIZE - bsize);
   if (BLOCK_SIZE - bsize < 2*sizeof(uint64_t)) { // No room
     hashBlock(); //update
     memset(buf, 0, BLOCK_SIZE - sizeof(uint64_t));
   }
-  buf[15] = htobe64(total*8);
+  uint64_t size = total*8;
+  // TODO unroll this
+  for (int i=0; i < sizeof(uint64_t); i++) {
+    buf[(BLOCK_SIZE - 1) - i] = (size & 0xff);
+    size >>= 8;
+  }
   hashBlock(); //update
 
   return state;
@@ -96,7 +109,11 @@ SHA512ByteHash SHA512Hasher::byte_digest() {
   digest();
   SHA512ByteHash ret;
   for (int i=0; i < 8; i++) {
-    ((uint64_t*)ret.hash)[i] = htobe64(state.hash[i]);
+    uint64_t curr = state.hash[i];
+    for (int j=0; j < sizeof(uint64_t); j++) {
+      ret.hash[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
+      curr >>= 8;
+    }
   }
   return ret;
 }
@@ -118,7 +135,7 @@ void SHA512Hasher::hashBlock() {
 
   // Do first 16 rounds
   for (int j=0; j < 16; j++) {
-    uint64_t wcurr = htobe64(buf[j]);
+    uint64_t wcurr = read64(buf, sizeof(uint64_t)*j);
     W[j] = wcurr;
     uint64_t T1 = h + CSigma1(e) + Ch(e, f, g) + K[j] + wcurr;
     uint64_t T2 = CSigma0(a) + Maj(a, b, c);

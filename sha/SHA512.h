@@ -35,7 +35,7 @@ public:
 
 private:
   SHA512Hash state;
-  uint64_t buf[16];
+  uint8_t buf[128]; // This should be partitioned in chunks of 8
   uint8_t bsize;
   uint64_t total;
 
