@@ -35,7 +35,7 @@ void dut(
   // Read in pass
   for (int p=0; p < MAX_PWD_LEN; p++) {
     passwd[p] = strm_in.read();
-    if (passwd[p]) break;
+    if (!passwd[p]) break;
   }
 
   char hash[HASH_LEN];

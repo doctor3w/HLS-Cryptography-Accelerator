@@ -30,7 +30,7 @@ public:
   SHA512Hash digest();
   SHA512ByteHash byte_digest();
 
-  template <int MAX_LEN=64>
+  template <int MAX_LEN>
   void update(const void *msgp, uint8_t len) {
     assert (len <= MAX_LEN);
     uint8_t *msg = (uint8_t*)msgp;
