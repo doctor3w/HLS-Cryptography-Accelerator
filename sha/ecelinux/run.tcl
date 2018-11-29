@@ -28,7 +28,7 @@ create_clock -period 10
 
 ### You can insert your own directives here ###
 # Partition the array so 64_bit accesses are fast
-set_directive_array_partition SHA512Hasher::SHA512Hasher buf -type block -factor 8
+set_directive_array_partition SHA512Hasher::SHA512Hasher buf -type cyclic -factor 8
 
 set_directive_unroll read64/LOOP
 set_directive_unroll -factor 8 memcpy_u8/LOOP
@@ -37,8 +37,8 @@ set_directive_unroll SHA512Hasher::digest/LOOP_U64
 set_directive_unroll SHA512Hasher::byte_digest/LOOP_DIGEST
 
 set_directive_array_partition SHA512Hasher::hashBlock W -type complete
-#set_directive_pipeline SHA512Hasher::hashBlock/LOOP16
-#set_directive_pipeline SHA512Hasher::hashBlock/LOOP64
+set_directive_pipeline SHA512Hasher::hashBlock/LOOP16
+set_directive_pipeline SHA512Hasher::hashBlock/LOOP64
 set_directive_unroll SHA512Hasher::hashBlock/LOOP_SHIFT
 # set_directive_array_partition SHA512Hasher::hashBlock K	-type complete
 
