@@ -2,8 +2,8 @@
 
 #include <stdint.h>
 
-#define MAX_PWD_LEN 32
-#define MAX_SALT_LEN 32
+#define MAX_PWD_LEN 20
+#define MAX_SALT_LEN 8
 
 #define HASH_LEN 86
 
