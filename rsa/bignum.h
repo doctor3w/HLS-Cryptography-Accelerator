@@ -13,11 +13,13 @@ class Bignum {
   typedef ap_uint<MAX_DIGITS * BITS> BigAp;
   typedef ap_uint<BITS> Digit;
   typedef ap_uint<2 * BITS> Wigit;
+//  typedef uint32_t Digit;
+//  typedef uint64_t Wigit;
   struct Internal {
     Internal() {
-      HLS_PRAGMA(resource variable=data core=RAM_1P_BRAM)
+  //    HLS_PRAGMA(resource variable=data core=RAM_2P_BRAM)
     }
-    Digit data[MAX_DIGITS];
+    ap_uint<32> data[64];
   };
 
   Bignum(BigAp value = 0) {
