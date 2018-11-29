@@ -25,24 +25,24 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
   assert(slen <= 64);
   // Compute B
   SHA512Hasher Bh;
-  Bh.update(pwd, pwlen);
-  Bh.update(salt, slen);
-  Bh.update(pwd, pwlen);
+  Bh.update<MAX_PWD_LEN>(pwd, pwlen);
+  Bh.update<MAX_SALT_LEN>(salt, slen);
+  Bh.update<MAX_PWD_LEN>(pwd, pwlen);
   SHA512ByteHash B = Bh.byte_digest();
 
   // Compute A
   SHA512Hasher Ah;
-  Ah.update(pwd, pwlen);
-  Ah.update(salt, slen);
-  Ah.update(B.hash, pwlen);
+  Ah.update<MAX_PWD_LEN>(pwd, pwlen);
+  Ah.update<MAX_SALT_LEN>(salt, slen);
+  Ah.update<MAX_PWD_LEN>(B.hash, pwlen);
 
   uint8_t curr = pwlen;
   for (int i=0; i < 8; i++) {
     if (curr) {
       if (curr & 1) {
-        Ah.update(B.hash, sizeof(B.hash));
+        Ah.update<SHA512Hasher::HASH_SIZE>(B.hash, sizeof(B.hash));
       } else {
-        Ah.update(pwd, pwlen);
+        Ah.update<MAX_PWD_LEN>(pwd, pwlen);
       }
     }
     curr >>= 1;
@@ -52,13 +52,13 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
   // Compute DP
   SHA512Hasher DPh;
   for (int i=0; i < pwlen; i++) {
-    DPh.update(pwd, pwlen);
+    DPh.update<MAX_PWD_LEN>(pwd, pwlen);
   }
   SHA512ByteHash DP = DPh.byte_digest();
   // Compute DS
   SHA512Hasher DSh;
   for (int i=0; i < 16 + A.hash[0]; i++) {
-    DSh.update(salt, slen);
+    DSh.update<MAX_SALT_LEN>(salt, slen);
   }
   SHA512ByteHash DS = DSh.byte_digest();
 
@@ -68,23 +68,23 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
     Ah.reset();
 
     if (i % 2 == 1) {
-      Ah.update(DP.hash, pwlen);
+      Ah.update<MAX_PWD_LEN>(DP.hash, pwlen);
     } else {
-      Ah.update(A.hash, sizeof(A.hash));
+      Ah.update<SHA512Hasher::HASH_SIZE>(A.hash, sizeof(A.hash));
     }
 
     if (i % 3 != 0) {
-      Ah.update(DS.hash, slen);
+      Ah.update<MAX_SALT_LEN>(DS.hash, slen);
     }
 
     if (i % 7 != 0) {
-      Ah.update(DP.hash, pwlen);
+      Ah.update<MAX_PWD_LEN>(DP.hash, pwlen);
     }
 
     if (i % 2 == 0) {
-      Ah.update(DP.hash, pwlen);
+      Ah.update<MAX_PWD_LEN>(DP.hash, pwlen);
     } else {
-      Ah.update(A.hash, sizeof(A.hash));
+      Ah.update<SHA512Hasher::HASH_SIZE>(A.hash, sizeof(A.hash));
     }
 
     A = Ah.byte_digest();

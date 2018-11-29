@@ -27,9 +27,13 @@ public:
   SHA512Hasher();
   void reset();
   // len <= 128
+  template <int MAX_LEN=64>
   void update(const void *msgp, uint8_t len);
   SHA512Hash digest();
   SHA512ByteHash byte_digest();
+
+  static const uint8_t HASH_SIZE = 64;
+
 
 private:
   SHA512Hash state;
