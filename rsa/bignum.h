@@ -31,7 +31,8 @@ class Bignum {
   BigAp to_ap_uint() {
     HLS_PRAGMA(inline off);
     BigAp result = 0;
-CONVERT: for (int x = 0; x < MAX_DIGITS; x++) {
+  CONVERT:
+    for (int x = 0; x < MAX_DIGITS; x++) {
       HLS_PRAGMA(unroll);
       result(x * BITS + BITS - 1, x * BITS) = block(x);
     }
@@ -61,7 +62,8 @@ CONVERT: for (int x = 0; x < MAX_DIGITS; x++) {
 
   int size() const {
     HLS_PRAGMA(inline);
-SIZE: for (int result = MAX_DIGITS - 1; result >= 0; result--) {
+  SIZE:
+    for (int result = MAX_DIGITS - 1; result >= 0; result--) {
       HLS_PRAGMA(unroll);
       if (block(result) != 0) {
         return result + 1;
@@ -101,7 +103,8 @@ SIZE: for (int result = MAX_DIGITS - 1; result >= 0; result--) {
   void divide(Bignum v, Bignum& q, Bignum& r) const {
     r.digits = digits;
     const int n = v.size();
-ZERO: for (int i = 0; i < MAX_DIGITS; i++) {
+  ZERO:
+    for (int i = 0; i < MAX_DIGITS; i++) {
       HLS_PRAGMA(unroll factor = 2);
       q.set_block(i, 0);
     }
@@ -195,7 +198,8 @@ ZERO: for (int i = 0; i < MAX_DIGITS; i++) {
       }
     }
 
-CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
+  CLEAR_UPPER:
+    for (int x = 0; x < MAX_DIGITS; x++) {
       if (x >= n) {
         r.set_block(x, 0);
       }
@@ -215,7 +219,7 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
       const int n = rhs / BITS;
     EXPAND:
       for (int x = MAX_DIGITS - 1; x >= 0; x--) {
-        HLS_PRAGMA(unroll factor=2);
+        HLS_PRAGMA(unroll factor = 2);
         if (x < n) break;
         set_block(x, block(x - n));
       }
@@ -223,7 +227,7 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
       Wigit k = 0;
     SHIFT:
       for (int j = 0; j < MAX_DIGITS; ++j) {
-        HLS_PRAGMA(unroll factor=2);
+        HLS_PRAGMA(unroll factor = 2);
         if (j + n >= size()) break;
         k |= static_cast<Wigit>(block(j + n)) << rhs;
         set_block(j + n, static_cast<Digit>(k));
@@ -247,14 +251,14 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
     if (n >= size()) {
     CLEAR:
       for (int i = 0; i < MAX_DIGITS; i++) {
-        HLS_PRAGMA(unroll factor=2);
+        HLS_PRAGMA(unroll factor = 2);
         set_block(i, 0);
       }
     } else {
       int s = size();
     SHRINK:
       for (int x = 0; x <= MAX_DIGITS; x++) {
-        HLS_PRAGMA(unroll factor=2);
+        HLS_PRAGMA(unroll factor = 2);
         if (x >= s - n) {
           set_block(x, 0);
         } else {
@@ -266,7 +270,7 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
       int j = s + n;
     SHIFT:
       for (int x = 0; x < MAX_DIGITS; x++) {
-        HLS_PRAGMA(unroll factor=2);
+        HLS_PRAGMA(unroll factor = 2);
         if (j == 0) break;
         j--;
         k = k << BITS | block(j);
@@ -285,7 +289,7 @@ CLEAR_UPPER:for (int x = 0; x < MAX_DIGITS; x++) {
     }
   COMPARE:
     for (int x = 0; x < MAX_DIGITS; x++) {
-      HLS_PRAGMA(unroll factor=2);
+      HLS_PRAGMA(unroll factor = 2);
       n--;
       if (n == 0 || u.block(n) != v.block(n)) break;
     }
