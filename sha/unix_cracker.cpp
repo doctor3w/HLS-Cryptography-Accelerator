@@ -2,6 +2,7 @@
 #include <assert.h>
 //#include <stdlib.h> for crypt()
 #include "SHA512.h"
+#include "unix_cracker.h"
 
 static const uint8_t P[] = {
   42, 21,  0,  1, 43, 22, 23,  2, 44,
@@ -19,7 +20,7 @@ static const char b64t[65] =
 
 
 
-void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const char salt[MAX_SALT_LEN], const uint8_t slen, int nrounds=5000) {
+void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const char salt[MAX_SALT_LEN], const uint8_t slen, int nrounds) {
   assert(pwlen <= 64);
   assert(slen <= 64);
   // Compute B
@@ -89,7 +90,7 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
     A = Ah.byte_digest();
   }
 
-
+  // TODO: unroll this
   for (int i=0; i < 21; i++) {
     uint32_t C = A.hash[P[3*i]] | (A.hash[P[3*i + 1]] << 8) | (A.hash[P[3*i + 2]] << 16);
     for (int j=0; j < 4; j++) {
@@ -100,27 +101,5 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
   uint8_t C = A.hash[P[63]];
   hash[84] = b64t[C & 0x3f];
   hash[85] = b64t[C >> 6];
-
-}
-
-
-// Check with echo -n "hello world" | sha512sum -t
-int main() {
-  // Note: if using crypt, prepend with $6$
-  const char salt[] = "8n./Hzqd";
-  const char pass[] = "This is my password!";
-  SHA512ByteHash res;
-  char hash[86];
-  for (int i=0; i < 1000; i++) {
-    calc(hash, pass, strlen(pass), salt, strlen(salt));
-  }
-  printf("%s\n", hash);
-    //out = crypt(pass, salt);
-
-  // for (int i=0; i < 64; i++) {
-  //   printf("%02x,", res.hash[i]);
-  // }
-  // printf("\n");
-
 
 }
