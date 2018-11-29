@@ -155,6 +155,7 @@ void SHA512Hasher::hashBlock() {
   uint64_t W[16];
 
   // Do first 16 rounds
+LOOP16:
   for (int j=0; j < 16; j++) {
     uint64_t wcurr = read64(buf, sizeof(uint64_t)*j);
     W[j] = wcurr;
@@ -171,9 +172,11 @@ void SHA512Hasher::hashBlock() {
   }
 
   // Do last 64 rounds
+LOOP64:
   for (int j=16; j < 80; j++) {
     uint64_t wnext = LSigma1(W[14]) + W[9] + LSigma0(W[1]) + W[0];
     // Shift register
+LOOP_SHIFT:
     for (int i=0; i < 16-1; i++) {
       W[i] = W[i+1];
     }
