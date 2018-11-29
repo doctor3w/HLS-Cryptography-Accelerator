@@ -1,6 +1,6 @@
 #include "aes.h"
 
-typedef uint8_t state_t[4][4];
+typedef bit128_t state_t;
 
 static const uint8_t sbox[256] = {
   //0     1    2      3     4    5     6     7      8    9     A      B    C     D     E     F
@@ -45,248 +45,193 @@ static const uint8_t rcon[11] = {
 #define sBoxVal(num) (sbox[(num)])
 #define sBoxInv(num) (rsbox[(num)])
 
-static void keyExpansion(uint8_t* roundKey, const uint8_t* key) {
+//static roundkey_t keyExpansion(const uint8_t* key) {
+static roundkey_t keyExpansion(aes_key_t key) {
   unsigned i, j, k;
-  uint8_t tempa[4];
-  for (i = 0; i < Nk; ++i) {
-    roundKey[(i * 4) + 0] = key[(i * 4) + 0];
-    roundKey[(i * 4) + 1] = key[(i * 4) + 1];
-    roundKey[(i * 4) + 2] = key[(i * 4) + 2];
-    roundKey[(i * 4) + 3] = key[(i * 4) + 3];
-  }
-  for (i = Nk; i < Nb * (Nr + 1); ++i) {
+  bit32_t tempa;
+  bit8_t temp;
+  roundkey_t roundKey;
+//  for (i = 0; i < Nk * 4; ++i) {
+//    roundKey((i + 1) * 8 - 1, i * 8) = key[i];
+//  }
+  // copy in key
+  roundKey(KEYLEN * 8 - 1, 0) = key;
+EXPAND_LOOP:  for (i = Nk; i < Nb * (Nr + 1); ++i) {
     k = (i - 1) * 4;
-    tempa[0] = roundKey[k + 0];
-    tempa[1] = roundKey[k + 1];
-    tempa[2] = roundKey[k + 2];
-    tempa[3] = roundKey[k + 3];
+    tempa = roundKey.range((k + 4) * 8 - 1, k * 8); // grab 32 bits into temp
 
     if (i % Nk == 0) {
-      k = tempa[0];
-      tempa[0] = tempa[1];
-      tempa[1] = tempa[2];
-      tempa[2] = tempa[3];
-      tempa[3] = k;
+      // RotWord
+      temp = tempa.range(7, 0);
+      tempa(7, 0) = tempa.range(15, 8);
+      tempa(15, 8) = tempa.range(23, 16);
+      tempa(23, 16) = tempa.range(31, 24);
+      tempa(31, 24) = temp;
 
-      tempa[0] = sBoxVal(tempa[0]);
-      tempa[1] = sBoxVal(tempa[1]);
-      tempa[2] = sBoxVal(tempa[2]);
-      tempa[3] = sBoxVal(tempa[3]);
-
-      tempa[0] = tempa[0] ^ rcon[i/Nk];
+      // SubWord
+      tempa(7, 0)   = sBoxVal(tempa.range(7, 0));
+      tempa(15, 8)  = sBoxVal(tempa.range(15, 8));
+      tempa(23, 16) = sBoxVal(tempa.range(23, 16));
+      tempa(31, 24) = sBoxVal(tempa.range(31, 24));
+  
+      // Rcon
+      tempa(7, 0) = tempa.range(7, 0) ^ rcon[i/Nk];
     }
 #if defined(AES_256) && (AES_256 == 1)
     if (i % Nk == 4) {
-      tempa[0] = sBoxVal(tempa[0]);
-      tempa[1] = sBoxVal(tempa[1]);
-      tempa[2] = sBoxVal(tempa[2]);
-      tempa[3] = sBoxVal(tempa[3]);
+      tempa(7, 0)   = sBoxVal(tempa.range(7, 0));
+      tempa(15, 8)  = sBoxVal(tempa.range(15, 8));
+      tempa(23, 16) = sBoxVal(tempa.range(23, 16));
+      tempa(31, 24) = sBoxVal(tempa.range(31, 24)); 
     }
 #endif
     j = i * 4;
     k = (i - Nk) * 4;
-    roundKey[j + 0] = roundKey[k + 0] ^ tempa[0];
-    roundKey[j + 1] = roundKey[k + 1] ^ tempa[1];
-    roundKey[j + 2] = roundKey[k + 2] ^ tempa[2];
-    roundKey[j + 3] = roundKey[k + 3] ^ tempa[3];
+    roundKey((j + 4) * 8 - 1, j * 8) = roundKey.range((k + 4) * 8 - 1, k * 8) ^ tempa;
   }
+  return roundKey;
 }
 
-static void AddRoundKey(uint8_t round,state_t* state,uint8_t* RoundKey) {
+static state_t AddRoundKey(uint8_t round, state_t state, roundkey_t roundKey) {
   uint8_t i,j;
-  for (i = 0; i < 4; ++i)
-    for (j = 0; j < 4; ++j)
-      (*state)[i][j] ^= RoundKey[(round * Nb * 4) + (i * Nb) + j];
+  bit32_t a, b;
+ADD_ROUND:  for (i = 0; i < 4; i++) {
+    #pragma HLS unroll
+    // add roundkey to each state column
+    // s[r][c] ^= w_{round * Nb + c}
+    j = round * Nb * 32 + i * Nb * 8;
+    a = state.range(i * 32 + 31, i * 32);
+    b = roundKey.range(j + Nb * 8 - 1, j);
+    state((i + 1) * 32 - 1, i * 32) = a ^ b;
+  }
+  return state;
 }
 
-static void SubBytes(state_t* state) {
-  uint8_t i, j;
-  for (i = 0; i < 4; ++i)
-    for (j = 0; j < 4; ++j)
-      (*state)[j][i] = sBoxVal((*state)[j][i]);
+static state_t SubBytes(state_t state) {
+  uint8_t i, j, k;
+SUBBYTE_1:  for (i = 0; i < 4; ++i) {
+    #pragma HLS unroll
+SUBBYTE_2:    for (j = 0; j < 4; ++j) {
+      #pragma HLS unroll
+      k = i * 32 + j * 8;
+      state(k + 7, k) = sBoxVal(state.range(k + 7, k));
+    }
+  }
+  return state;
 }
 
-static void ShiftRows(state_t* state) {
-  uint8_t temp;
-  temp           = (*state)[0][1];
-  (*state)[0][1] = (*state)[1][1];
-  (*state)[1][1] = (*state)[2][1];
-  (*state)[2][1] = (*state)[3][1];
-  (*state)[3][1] = temp;
+static state_t ShiftRows(state_t state) {
+  bit8_t temp;
+  // no rotate of row 0
+  
+  // rotate row 1
+  temp = state.range(8 + 7, 8); // state[0][1]
+  state(8 + 7, 8) = state.range(40 + 7, 40);
+  state(40 + 7, 40) = state.range(72 + 7, 72);
+  state(72 + 7, 72) = state.range(104 + 7, 104);
+  state(104 + 7, 104) = temp;
+  
+  // rotate row 2
+  temp = state.range(16 + 7, 16);
+  state(16 + 7, 16) = state.range(80 + 7, 80);
+  state(80 + 7, 80) = temp;
+  
+  temp = state.range(48 + 7, 48);
+  state(48 + 7, 48) = state.range(112 + 7, 112);
+  state(112 + 7, 112) = temp;
 
-  temp           = (*state)[0][2];
-  (*state)[0][2] = (*state)[2][2];
-  (*state)[2][2] = temp;
+  // rotate row 3
+  temp = state.range(24 + 7, 24);
+  state(24 + 7, 24) = state.range(120 + 7, 120);
+  state(120 + 7, 120) = state.range(88 + 7, 88);
+  state(88 + 7, 88) = state.range(56 + 7, 56);
+  state(56 + 7, 56) = temp;
 
-  temp           = (*state)[1][2];
-  (*state)[1][2] = (*state)[3][2];
-  (*state)[3][2] = temp;
-
-  temp           = (*state)[0][3];
-  (*state)[0][3] = (*state)[3][3];
-  (*state)[3][3] = (*state)[2][3];
-  (*state)[2][3] = (*state)[1][3];
-  (*state)[1][3] = temp;
+  return state;
 }
 
-static uint8_t xtime(uint8_t x) {
+static bit8_t xtime(bit8_t x) {
   return ((x<<1) ^ (((x>>7) & 1) * 0x1b));
 }
 
-static void MixColumns(state_t* state) {
-  uint8_t i;
-  uint8_t Tmp, Tm, t;
-  for (i = 0; i < 4; ++i) {
-    t   = (*state)[i][0];
-    Tmp = (*state)[i][0] ^ (*state)[i][1] ^ (*state)[i][2] ^ (*state)[i][3] ;
-    Tm  = (*state)[i][0] ^ (*state)[i][1] ; Tm = xtime(Tm);  (*state)[i][0] ^= Tm ^ Tmp ;
-    Tm  = (*state)[i][1] ^ (*state)[i][2] ; Tm = xtime(Tm);  (*state)[i][1] ^= Tm ^ Tmp ;
-    Tm  = (*state)[i][2] ^ (*state)[i][3] ; Tm = xtime(Tm);  (*state)[i][2] ^= Tm ^ Tmp ;
-    Tm  = (*state)[i][3] ^ t ;              Tm = xtime(Tm);  (*state)[i][3] ^= Tm ^ Tmp ;
+static state_t MixColumns(state_t state) {
+  uint8_t i, c_off;
+  bit8_t all, comb, s0c;
+MIXCOL:  for (i = 0; i < 4; i++) {
+    #pragma HLS unroll
+    c_off = i * 32;
+    s0c = state.range(c_off + 31, c_off);
+    all = state.range(c_off + 7, c_off) ^ state.range(c_off + 15, c_off + 8) 
+          ^ state.range(c_off + 23, c_off + 16) ^ state.range(c_off + 31, c_off + 24);
+    
+    comb = state.range(c_off + 7, c_off) ^ state.range(c_off + 15, c_off + 8); 
+    comb = xtime(comb);
+    state(c_off + 7, c_off) = comb ^ all;
+    
+    comb = state.range(c_off + 15, c_off + 8) ^ state.range(c_off + 23, c_off + 16);
+    comb = xtime(comb);
+    state(c_off + 15, c_off + 8) = comb ^ all;
+
+    comb = state.range(c_off + 23, c_off + 16) ^ state.range(c_off + 31, c_off + 24);
+    comb = xtime(comb);
+    state(c_off + 23, c_off + 16) = comb ^ all;
+
+    comb = state.range(c_off + 31, c_off + 24) ^ s0c;
+    comb = xtime(comb);
+    state(c_off + 31, c_off + 24) = comb ^ all;
   }
+  return state;
 }
 
-#define Multiply(x, y)                                \
-      (  ((y & 1) * x) ^                              \
-      ((y>>1 & 1) * xtime(x)) ^                       \
-      ((y>>2 & 1) * xtime(xtime(x))) ^                \
-      ((y>>3 & 1) * xtime(xtime(xtime(x)))) ^         \
-      ((y>>4 & 1) * xtime(xtime(xtime(xtime(x))))))   \
-
-static void InvMixColumns(state_t* state) {
-  int i;
-  uint8_t a, b, c, d;
-  for (i = 0; i < 4; ++i) {
-    a = (*state)[i][0];
-    b = (*state)[i][1];
-    c = (*state)[i][2];
-    d = (*state)[i][3];
-
-    (*state)[i][0] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
-    (*state)[i][1] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
-    (*state)[i][2] = Multiply(a, 0x0d) ^ Multiply(b, 0x09) ^ Multiply(c, 0x0e) ^ Multiply(d, 0x0b);
-    (*state)[i][3] = Multiply(a, 0x0b) ^ Multiply(b, 0x0d) ^ Multiply(c, 0x09) ^ Multiply(d, 0x0e);
-  }
-}
-
-static void InvSubBytes(state_t* state) {
-  uint8_t i, j;
-  for (i = 0; i < 4; ++i)
-    for (j = 0; j < 4; ++j)
-      (*state)[j][i] = sBoxInv((*state)[j][i]);
-}
-
-static void InvShiftRows(state_t* state) {
-  uint8_t temp;
-
-  temp = (*state)[3][1];
-  (*state)[3][1] = (*state)[2][1];
-  (*state)[2][1] = (*state)[1][1];
-  (*state)[1][1] = (*state)[0][1];
-  (*state)[0][1] = temp;
-
-  temp = (*state)[0][2];
-  (*state)[0][2] = (*state)[2][2];
-  (*state)[2][2] = temp;
-
-  temp = (*state)[1][2];
-  (*state)[1][2] = (*state)[3][2];
-  (*state)[3][2] = temp;
-
-  temp = (*state)[0][3];
-  (*state)[0][3] = (*state)[1][3];
-  (*state)[1][3] = (*state)[2][3];
-  (*state)[2][3] = (*state)[3][3];
-  (*state)[3][3] = temp;
-}
-
-static void Cipher(state_t* state, uint8_t* RoundKey) {
+static state_t Cipher(state_t state, roundkey_t roundKey) {
   uint8_t round = 0;
-  AddRoundKey(0, state, RoundKey);
-  for (round = 1; round < Nr; ++round) {
-    SubBytes(state);
-    ShiftRows(state);
-    MixColumns(state);
-    AddRoundKey(round, state, RoundKey);
+  state = AddRoundKey(0, state, roundKey);
+  for (round = 1; round < Nr; round++) {
+    state = SubBytes(state);
+    state = ShiftRows(state);
+    state = MixColumns(state);
+    state = AddRoundKey(round, state, roundKey);
   }
-  SubBytes(state);
-  ShiftRows(state);
-  AddRoundKey(Nr, state, RoundKey);
+  state = SubBytes(state);
+  state = ShiftRows(state);
+  state = AddRoundKey(Nr, state, roundKey);
+  return state;
 }
-
-static void InvCipher(state_t* state,uint8_t* RoundKey) {
-  uint8_t round = 0;
-  AddRoundKey(Nr, state, RoundKey);
-  for (round = (Nr - 1); round > 0; --round) {
-    InvShiftRows(state);
-    InvSubBytes(state);
-    AddRoundKey(round, state, RoundKey);
-    InvMixColumns(state);
-  }
-  InvShiftRows(state);
-  InvSubBytes(state);
-  AddRoundKey(0, state, RoundKey);
-}
-
 
 /*****************************************************************************/
 /* Public functions:                                                         */
 /*****************************************************************************/
-void AES_ECB_encrypt(uint8_t* key, uint8_t* buf) {
-  uint8_t RoundKey[KEYLEN_EXP];
-  //uint8_t st[4][Nb];
-  state_t st;
-  
-  keyExpansion(RoundKey, key);
-  
-  int r, c;
-  for (r = 0; r < 4; r++)
-    for (c = 0; c < Nb; c++)
-      st[r][c] = buf[c + (r<<2)];
-
-  Cipher(&st, RoundKey);
-
-  for (r = 0; r < 4; r++)
-    for (c = 0; c < Nb; c++)
-      buf[c + (r<<2)] = st[r][c]; 
-}
-
-void AES_ECB_decrypt(uint8_t* key, uint8_t* buf) {
-  uint8_t RoundKey[KEYLEN_EXP];
-  keyExpansion(RoundKey, key);
-  InvCipher((state_t*)buf, RoundKey);
-}
-
-void ecb_encrypt_dut(
+void dut(
     hls::stream<bit32_t> &strm_in,
     hls::stream<bit32_t> &strm_out
 )
 {
-  uint8_t buf[BLOCKLEN];
-  uint8_t key[KEYLEN];
-
-  int i;
+  int i, j;
   bit32_t read;
+
+  aes_key_t key;
+  roundkey_t w;
+  bit128_t iv;
+  bit128_t buf;
   
-  for (i = 0; i < Nb; i++) {
-    read = strm_in.read();
-    for (int j = 0; j < 4; j++)
-      buf[j + (i<<2)] = read >> (j * 8);
-  }
+  // first read key
+  for (i = 0; i < Nk; i++)
+    key(i * 32 + 31, i * 32) = strm_in.read();
+  w = keyExpansion(key);
 
-  for (i = 0; i < Nk; i++) {
-    read = strm_in.read();
-    for (int j = 0; j < 4; j++)
-      key[j + (i<<2)] = read >> (j * 8);
-  }
+  // read IV
+  for (i = 0; i < Nb; i++)
+    iv(i * 32 + 31, i * 32) = strm_in.read();
 
-  AES_ECB_encrypt(key, buf);
-
-  for (i = 0; i < Nb; i++) {
-    bit32_t out = 0;
-    for (int j = 0; j < 4; j++)
-      out |= (buf[j + (i<<2)] << (j * 8));
-    strm_out.write( out );
+  bit128_t iv_enc = iv;
+  for (i = 0; i < NUM_BLOCKS; i++) {
+    for (j = 0; j < Nb; j++)
+       buf(j * 32 + 31, j * 32) = strm_in.read();
+    iv_enc = Cipher(iv, w);
+    buf ^= iv_enc;
+    iv++;
+    for (j = 0; j < Nb; j++)
+      strm_out.write(buf(j + 32 + 31, j * 32));
   }
 }
 

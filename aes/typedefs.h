@@ -6,12 +6,10 @@
 #ifndef TYPEDEFS_H
 #define TYPEDEFS_H
 
-#define LOCAL 1
-#if LOCAL == 1
-typedef uint32_t bit32_t;
-#else
+#define AP_INT_MAX_W 1921
 #include "ap_int.h"
+typedef ap_uint<8> bit8_t;
 typedef ap_uint<32> bit32_t;
-#endif
+typedef ap_uint<128> bit128_t;
 
 #endif

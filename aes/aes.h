@@ -9,6 +9,10 @@
 #define AES_192 1
 #define AES_256 0
 
+#ifndef NUM_BLOCKS
+#define NUM_BLOCKS 4
+#endif
+
 #define BLOCKLEN 16 // 16 bytes = 128 bits
 #define Nb 4
 
@@ -29,10 +33,10 @@
   #define KEYLEN_EXP 176
 #endif
 
-void AES_ECB_encrypt(uint8_t* key, uint8_t* buf); 
-void AES_ECB_decrypt(uint8_t* key, uint8_t* buf);
+typedef ap_uint<KEYLEN * 8> aes_key_t;
+typedef ap_uint<KEYLEN_EXP * 8> roundkey_t;
 
-void ecb_encrypt_dut(
+void dut(
     hls::stream<bit32_t> &strm_in,
     hls::stream<bit32_t> &strm_out
 );

@@ -22,8 +22,8 @@ csim: aes.cpp aes_test.cpp
 	./aes
 
 bitstream: 
-	@echo "Synthesizing digitrec and creating bitstream on amdpool ..."
-	vivado_hls -f run_pipeline.tcl
+	@echo "Synthesizing aes and creating bitstream on amdpool ..."
+	vivado_hls -f run_aes.tcl
 	./run_bitstream.sh
 
 clean:
