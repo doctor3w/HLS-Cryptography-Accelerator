@@ -208,6 +208,7 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
       break;
     }
     int off = loc + (bytes - (mpz_sizeinbase(c, 2) + 8 - 1) / 8);
+    memset(cipher + loc, 0, off-loc);
     mpz_export(cipher + off, NULL, 1, sizeof(char), 0, 0, c);
     memcpy(iv, cipher + loc, bytes);
     loc += bytes;
@@ -241,6 +242,7 @@ int decrypt(char* message, int message_len, const char* cipher, int length,
     block_decrypt(m, c, ku);
     memset(buf, 0, chunk_size);
     int off = chunk_size - (mpz_sizeinbase(m, 2) + 8 - 1) / 8;
+    memset(buf, 0, off);
     mpz_export(buf + off, NULL, 1, sizeof(char), 0, 0, m);
 
     if (use_cbc) {

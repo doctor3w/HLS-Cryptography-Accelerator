@@ -5,3 +5,4 @@ rsa-sim
 rsa-host
 zedboard_project
 zedboard_project.tgz
+*.bit

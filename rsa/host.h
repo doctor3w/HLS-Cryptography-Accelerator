@@ -36,7 +36,7 @@ class Host {
   }
 
   void write(char* buf, int len) {
-    int result = ::write(fdr, (void*)buf, len);
+    int result = ::write(fdw, (void*)buf, len);
     assert(result == len);
   }
   void read(char* buf, int len) {
