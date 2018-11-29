@@ -18,7 +18,43 @@ static const uint8_t P[] = {
 static const char b64t[65] =
 "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-
+//
+// static inline SHA512ByteHash runIters(int slen, int pwlen,
+//                                       const uint8_t A[SHA512Hasher::HASH_SIZE],
+//                                       const uint8_t DS[SHA512Hasher::HASH_SIZE],
+//                                       const uint8_t DP[SHA512Hasher::HASH_SIZE],
+//                                       int nrounds=5000) {
+//   SHA512Hasher Ch;
+//   SHA512ByteHash C;
+//
+//   for (int i=0; i < nrounds; i++) {
+//     Ch.reset();
+//
+//     if (i % 2 == 1) {
+//       Ch.update<MAX_PWD_LEN>(DP, pwlen);
+//     } else {
+//       Ch.update<SHA512Hasher::HASH_SIZE>(C.hash, SHA512Hasher::HASH_SIZE);
+//     }
+//
+//     if (i % 3 != 0) {
+//       Ch.update<MAX_SALT_LEN>(DS, slen);
+//     }
+//
+//     if (i % 7 != 0) {
+//       Ch.update<MAX_PWD_LEN>(DP, pwlen);
+//     }
+//
+//     if (i % 2 == 0) {
+//       Ch.update<MAX_PWD_LEN>(DP, pwlen);
+//     } else {
+//       Ch.update<SHA512Hasher::HASH_SIZE>(C.hash, SHA512Hasher::HASH_SIZE);
+//     }
+//
+//     C = Ch.byte_digest();
+//   }
+//   return C;
+//
+// }
 
 void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const char salt[MAX_SALT_LEN], const uint8_t slen, int nrounds) {
   assert(pwlen <= 64);
