@@ -6,6 +6,11 @@
 #include <stdint.h>
 #include "big_ap_int.h"
 #include "pragmas.h"
+ 
+template <typename T, int LEN>
+struct Array {
+  T data[LEN];
+};
 
 template <int MAX_DIGITS, int BITS>
 class Bignum {
@@ -13,18 +18,11 @@ class Bignum {
   typedef ap_uint<MAX_DIGITS * BITS> BigAp;
   typedef ap_uint<BITS> Digit;
   typedef ap_uint<2 * BITS> Wigit;
-//  typedef uint32_t Digit;
-//  typedef uint64_t Wigit;
-  struct Internal {
-    Internal() {
-  //    HLS_PRAGMA(resource variable=data core=RAM_2P_BRAM)
-    }
-    ap_uint<32> data[64];
-  };
-
+  
   Bignum(BigAp value = 0) {
-    HLS_PRAGMA(inline off);
-    for (int x = 0; x < MAX_DIGITS; x++) {
+    HLS_PRAGMA(inline);
+INIT: for (int x = 0; x < MAX_DIGITS; x++) {
+      HLS_PRAGMA(unroll);
       set_block(x, value(x * BITS + BITS - 1, x * BITS));
     }
   }
@@ -33,6 +31,7 @@ class Bignum {
     HLS_PRAGMA(inline off);
     BigAp result = 0;
     for (int x = 0; x < MAX_DIGITS; x++) {
+      HLS_PRAGMA(unroll);
       result(x * BITS + BITS - 1, x * BITS) = block(x);
     }
     return result;
@@ -44,14 +43,14 @@ class Bignum {
   }
 
   void set_block(int i, Digit v) {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     if (i < MAX_DIGITS) {
       digits.data[i] = v;
     }
   }
 
   Digit block(int i) const {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     if (i < MAX_DIGITS) {
       return digits.data[i];
     } else {
@@ -60,8 +59,9 @@ class Bignum {
   }
 
   int size() const {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     for (int result = MAX_DIGITS - 1; result >= 0; result--) {
+      HLS_PRAGMA(unroll);
       if (block(result) != 0) {
         return result + 1;
       }
@@ -70,7 +70,6 @@ class Bignum {
   }
 
   friend Bignum operator*(const Bignum& u, const Bignum& v) {
-    HLS_PRAGMA(inline off);
     const int m = u.size();
     const int n = v.size();
     Bignum w;
@@ -90,45 +89,18 @@ class Bignum {
     return w;
   }
 
-  Bignum& operator*=(const Bignum& rhs) {
-    HLS_PRAGMA(inline off);
-    *this = (*this) * rhs;
-    return *this;
-  }
-
-  friend Bignum operator/(const Bignum& u, const Bignum& v) {
-    HLS_PRAGMA(inline off);
-    Bignum q, r;
-    u.divide(v, q, r);
-    return q;
-  }
-
-  Bignum& operator/=(const Bignum& rhs) {
-    HLS_PRAGMA(inline off);
-    Bignum r;
-    divide(rhs, *this, r);
-    return *this;
-  }
-
   friend Bignum operator%(const Bignum& u, const Bignum& v) {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     Bignum q, r;
     u.divide(v, q, r);
     return r;
   }
 
-  Bignum& operator%=(const Bignum& rhs) {
-    HLS_PRAGMA(inline off);
-    Bignum q;
-    divide(rhs, q, *this);
-    return *this;
-  }
-
   void divide(Bignum v, Bignum& q, Bignum& r) const {
-    HLS_PRAGMA(inline off);
     r.digits = digits;
     const int n = v.size();
       for (int i = 0; i < MAX_DIGITS; i++) {
+        HLS_PRAGMA(unroll);
         q.set_block(i, 0);
       }
     if (size() < n) {
@@ -226,13 +198,12 @@ class Bignum {
   }
 
   friend Bignum operator<<(Bignum u, int v) {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     u <<= v;
     return u;
   }
 
   Bignum& operator<<=(int rhs) {
-    HLS_PRAGMA(inline off);
     if (block(size() - 1) != 0 && rhs != 0) {                                                               
       const int n = rhs / BITS;                                                                         
 EXPAND: for (int x = MAX_DIGITS - 1; x >= 0; x--) {
@@ -256,13 +227,12 @@ EXPAND: for (int x = MAX_DIGITS - 1; x >= 0; x--) {
   }
 
   friend Bignum operator>>(Bignum u, int v) {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     u >>= v;
     return u;
   }
 
   Bignum& operator>>=(int rhs) {
-    HLS_PRAGMA(inline off);
     const int n = rhs / BITS;                                                                           
     if (n >= size()) {
 CLEAR: for (int i = 0; i < MAX_DIGITS; i++) {
@@ -292,7 +262,6 @@ SHIFT: for (int x = 0; x < MAX_DIGITS; x++) {
   }
 
   friend bool operator<(const Bignum& u, const Bignum& v) {
-    HLS_PRAGMA(inline off);
  const int m = u.size();                                                       
     int n = v.size();                                                                            
     if (m != n) {                                                                                       
@@ -306,30 +275,30 @@ COMPARE: for (int x = 0; x < MAX_DIGITS; x++) {
   }
 
   friend bool operator>(const Bignum& u, const Bignum& v) {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     return (v < u);
   }
 
   friend bool operator<=(const Bignum& u, const Bignum& v) {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     return !(v < u);
   }
 
   friend bool operator>=(const Bignum& u, const Bignum& v) {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     return !(u < v);
   }
 
   friend bool operator==(const Bignum& u, const Bignum& v) {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     return (u.digits == v.digits);
   }
 
   friend bool operator!=(const Bignum& u, const Bignum& v) {
-    HLS_PRAGMA(inline off);
+    HLS_PRAGMA(inline);
     return (u.digits != v.digits);
   }
 
  private:
-  Internal digits;
+  Array<Digit, MAX_DIGITS> digits;
 };
