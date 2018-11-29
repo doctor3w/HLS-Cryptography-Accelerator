@@ -27,6 +27,14 @@ typedef struct {
   int bytes;
 } private_key_t;
 
+void print_buf(char* buf, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    if (i % 128 == 0) printf("\n");
+    printf("%02hhX", (int)buf[i]);
+  }
+  printf("\n");
+}
+
 void fill_random(char* buf, size_t len) {
   size_t filled = 0;
   while (filled < len) {
@@ -145,7 +153,7 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   to_buf(buf + MAX_BIT_LEN / 32, e_ap);
   to_buf(buf + 2 * MAX_BIT_LEN / 32, n_ap);
   fpga_host->write((char*)buf, sizeof(buf));
-  fpga_host->read((char*)buf, MAX_BIT_LEN / 32);
+  fpga_host->read((char*)buf, MAX_BYTES);
   ap_to_mpz(out, from_buf<MAX_BIT_LEN>(buf));
 #endif
 }
@@ -173,7 +181,7 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
   int bytes = kp.bytes;
   // 1 byte less for length, 1 byte less for space
   int chunk_size = bytes - 1;
-  int bytes_per_chunk = chunk_size - 2;
+  int bytes_per_chunk = chunk_size - 1;
 
   char iv[MAX_BYTES];
   if (use_cbc) {
@@ -195,11 +203,14 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
     memcpy(buf, message + x, size);
     fill_random(buf + size, bytes_per_chunk - size);
     buf[bytes_per_chunk] = (char)size;
+    buf[chunk_size] = 0;
 
     if (use_cbc) {
       xor_array(buf, iv, chunk_size);
     }
 
+    printf("before encrypt:");
+    print_buf(buf, MAX_BYTES);
     mpz_import(m, chunk_size, 1, sizeof(buf[0]), 0, 0, buf);
     block_encrypt(c, m, kp);
 
@@ -211,6 +222,8 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
     memset(cipher + loc, 0, off-loc);
     mpz_export(cipher + off, NULL, 1, sizeof(char), 0, 0, c);
     memcpy(iv, cipher + loc, bytes);
+    printf("after encrypt:");
+    print_buf(iv, MAX_BYTES);
     loc += bytes;
   }
 
@@ -224,7 +237,7 @@ int decrypt(char* message, int message_len, const char* cipher, int length,
   int bytes = ku.bytes;
   // 1 byte less for length, 1 byte less for space
   int chunk_size = bytes - 1;
-  int bytes_per_chunk = chunk_size - 2;
+  int bytes_per_chunk = chunk_size - 1;
 
   char iv[MAX_BYTES];
   if (use_cbc) {
@@ -261,13 +274,6 @@ int decrypt(char* message, int message_len, const char* cipher, int length,
 
   mpz_clears(m, c, NULL);
   return msg_idx;
-}
-
-void print_buf(char* buf, size_t len) {
-  for (size_t i = 0; i < len; i++) {
-    printf("%02hhX", (int)buf[i]);
-  }
-  printf("\n");
 }
 
 int main() {
