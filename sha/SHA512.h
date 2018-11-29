@@ -7,8 +7,6 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-#define MAX_PWD_LEN 32
-#define MAX_SALT_LEN 32
 
 struct SHA512Hash {
   uint64_t hash[8];
