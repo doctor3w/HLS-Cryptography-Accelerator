@@ -46,27 +46,44 @@ static const uint8_t rcon[11] = {
 #define sBoxInv(num) (rsbox[(num)])
 
 //static roundkey_t keyExpansion(const uint8_t* key) {
-static roundkey_t keyExpansion(aes_key_t key) {
+static void keyExpansion(roundkey_t roundKey, aes_key_t key) {
+  #pragma HLS inline off
   unsigned i, j, k;
-  bit32_t tempa;
+  bit32_t tempa, tempb;
   bit8_t temp;
-  roundkey_t roundKey;
 //  for (i = 0; i < Nk * 4; ++i) {
 //    roundKey((i + 1) * 8 - 1, i * 8) = key[i];
 //  }
+
   // copy in key
-  roundKey(KEYLEN * 8 - 1, 0) = key;
-EXPAND_LOOP:  for (i = Nk; i < Nb * (Nr + 1); ++i) {
-    k = (i - 1) * 4;
-    tempa = roundKey.range((k + 4) * 8 - 1, k * 8); // grab 32 bits into temp
+#if AES_256 == 1
+  roundKey[0] = key.range(127, 0);
+  roundKey[1] = key.range(255, 128);
+#elif AES_192 == 1
+  roundKey[0] = key.range(127, 0);
+  roundKey[1](63, 0) = key.range(191, 128);
+#else
+  roundKey[0] = key;
+#endif
+
+EXPAND_LOOP:  
+  for (i = Nk; i < Nb * (Nr + 1); ++i) {
+    #pragma HLS unroll
+    //k = (i - 1) * 4;
+    j = (i - 1) >> 2; // array index
+    k = (i - 1) % 4;
+    tempa = roundKey[j].range(k * 32 + 31, k * 32);
+    //tempa = roundKey.range((k + 4) * 8 - 1, k * 8); // grab 32 bits into temp
 
     if (i % Nk == 0) {
       // RotWord
-      temp = tempa.range(7, 0);
-      tempa(7, 0) = tempa.range(15, 8);
-      tempa(15, 8) = tempa.range(23, 16);
-      tempa(23, 16) = tempa.range(31, 24);
-      tempa(31, 24) = temp;
+      //temp = tempa.range(7, 0);
+      //tempa = tempa >> 8;
+      //tempa(7, 0) = tempa.range(15, 8);
+      //tempa(15, 8) = tempa.range(23, 16);
+      //tempa(23, 16) = tempa.range(31, 24);
+      //tempa(31, 24) = temp;
+      tempa.rrotate(8);
 
       // SubWord
       tempa(7, 0)   = sBoxVal(tempa.range(7, 0));
@@ -85,33 +102,48 @@ EXPAND_LOOP:  for (i = Nk; i < Nb * (Nr + 1); ++i) {
       tempa(31, 24) = sBoxVal(tempa.range(31, 24)); 
     }
 #endif
-    j = i * 4;
-    k = (i - Nk) * 4;
-    roundKey((j + 4) * 8 - 1, j * 8) = roundKey.range((k + 4) * 8 - 1, k * 8) ^ tempa;
+    j = (i - Nk) >> 2;
+    k = ((i - Nk) % 4) * 32;
+    tempb = roundKey[j].range(k + 31, k);
+    j = i >> 2;
+    k = (i % 4) * 32;
+    roundKey[j].range(k + 31, k) = tempa ^ tempb;
+
+//    j = i * 4;
+//    k = (i - Nk) * 4;
+//    tempb = roundKey.range(k * 8 + 31, k * 8);
+//    roundKey(j * 8 + 31, j * 8) = tempb ^ tempa;
   }
-  return roundKey;
 }
 
 static state_t AddRoundKey(uint8_t round, state_t state, roundkey_t roundKey) {
-  uint8_t i,j;
-  bit32_t a, b;
-ADD_ROUND:  for (i = 0; i < 4; i++) {
-    #pragma HLS unroll
-    // add roundkey to each state column
-    // s[r][c] ^= w_{round * Nb + c}
-    j = round * Nb * 32 + i * Nb * 8;
-    a = state.range(i * 32 + 31, i * 32);
-    b = roundKey.range(j + Nb * 8 - 1, j);
-    state((i + 1) * 32 - 1, i * 32) = a ^ b;
-  }
-  return state;
+  #pragma HLS inline off
+  return state ^ roundKey[round];
+//  uint8_t i,j;
+//  bit32_t a;
+//  bit128_t w4;
+//  w4 = roundKey[round];
+//ADD_ROUND:
+//  for (i = 0; i < 4; i++) {
+//    #pragma HLS unroll
+//    // add roundkey to each state column
+//    // s[r][c] ^= w_{round * Nb + c}
+//    j = round * Nb * 32 + i * Nb * 8;
+//    a = state.range(i * 32 + 31, i * 32);
+//    //b = roundKey.range(j + Nb * 8 - 1, j);
+//    state(i * 32 + 31, i * 32) = a ^ (w4.range(i * Nb * 8 + 31, i * Nb * 8));
+//  }
+//  return state;
 }
 
 static state_t SubBytes(state_t state) {
+  #pragma HLS inline off
   uint8_t i, j, k;
-SUBBYTE_1:  for (i = 0; i < 4; ++i) {
+SUBBYTE_1:  
+  for (i = 0; i < 4; ++i) {
     #pragma HLS unroll
-SUBBYTE_2:    for (j = 0; j < 4; ++j) {
+  SUBBYTE_2:    
+    for (j = 0; j < 4; ++j) {
       #pragma HLS unroll
       k = i * 32 + j * 8;
       state(k + 7, k) = sBoxVal(state.range(k + 7, k));
@@ -121,6 +153,7 @@ SUBBYTE_2:    for (j = 0; j < 4; ++j) {
 }
 
 static state_t ShiftRows(state_t state) {
+  #pragma HLS inline off
   bit8_t temp;
   // no rotate of row 0
   
@@ -155,6 +188,7 @@ static bit8_t xtime(bit8_t x) {
 }
 
 static state_t MixColumns(state_t state) {
+  #pragma HLS inline off
   uint8_t i, c_off;
   bit8_t all, comb, s0c;
 MIXCOL:  for (i = 0; i < 4; i++) {
@@ -184,6 +218,7 @@ MIXCOL:  for (i = 0; i < 4; i++) {
 }
 
 static state_t Cipher(state_t state, roundkey_t roundKey) {
+  #pragma HLS inline off
   uint8_t round = 0;
   state = AddRoundKey(0, state, roundKey);
   for (round = 1; round < Nr; round++) {
@@ -206,30 +241,46 @@ void dut(
     hls::stream<bit32_t> &strm_out
 )
 {
-  int i, j;
+  int i, j, bi;
   bit32_t read;
+
+  //#pragma HLS array_partition complete variable=sbox
 
   aes_key_t key;
   roundkey_t w;
-  bit128_t iv;
-  bit128_t buf;
+  bit128_t iv, iv_enc, buf;
   
   // first read key
   for (i = 0; i < Nk; i++)
     key(i * 32 + 31, i * 32) = strm_in.read();
-  w = keyExpansion(key);
+  
+  keyExpansion(w, key);
 
   // read IV
   for (i = 0; i < Nb; i++)
     iv(i * 32 + 31, i * 32) = strm_in.read();
 
-  bit128_t iv_enc = iv;
-  for (i = 0; i < NUM_BLOCKS; i++) {
+
+  for (i = 0, bi = BLOCKLEN; i < NUM_BLOCKS; i++, bi++) {
+    
+    // read in block
     for (j = 0; j < Nb; j++)
        buf(j * 32 + 31, j * 32) = strm_in.read();
+    // encrypt IV
     iv_enc = Cipher(iv, w);
+
+    for (bi = (BLOCKLEN - 1); bi >= 0; --bi) {
+      // check overflow
+      if (iv.range(bi * 8 + 7, bi * 8) == 255) {
+        iv(bi * 8 + 7, bi * 8) = 0;
+        continue;
+      }
+      iv(bi * 8 + 7, bi * 8) = iv.range(bi * 8 + 7, bi * 8) + 1;
+      break;
+    }
+    
     buf ^= iv_enc;
-    iv++;
+    //iv++;
     for (j = 0; j < Nb; j++)
       strm_out.write(buf(j + 32 + 31, j * 32));
   }
