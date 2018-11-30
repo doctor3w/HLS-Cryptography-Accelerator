@@ -1,12 +1,10 @@
 
 #pragma once
 
-#include <string.h>
 #include <stdint.h>
 
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
+#include <string.h>
+#include "helpers.h"
 
 struct SHA512Hash {
   uint64_t hash[8];
@@ -58,7 +56,6 @@ private:
   uint8_t bsize;
   uint64_t total;
 
-
   void hashBlock();
   // Rotate right n
   static inline uint64_t Sn(uint64_t x, int n) { return (x >> n) | (x << (64 - n)); }
@@ -70,27 +67,5 @@ private:
   static inline uint64_t CSigma1(uint64_t x) { return Sn(x, 14)^Sn(x, 18)^Sn(x, 41); }
   static inline uint64_t LSigma0(uint64_t x) { return Sn(x, 1)^Sn(x, 8)^Rn(x, 7); }
   static inline uint64_t LSigma1(uint64_t x) { return Sn(x, 19)^Sn(x, 61)^Rn(x, 6); }
-
-
-  template <int MAX_LEN>
-  static inline void memcpy_u8(uint8_t *dest, const uint8_t *src, int nbytes) {
-    // TODO: unroll this
-  LOOP:
-    for (int i=0; i < MAX_LEN; i++) {
-      if (i < nbytes) {
-          dest[i] = src[i];
-      }
-    }
-  }
-
-  template <int MAX_LEN>
-  static inline void memset_u8(uint8_t *dest, uint8_t val, int nbytes) {
-  LOOP:
-    for (int i=0; i < MAX_LEN; i++) {
-      if (i < nbytes) {
-          dest[i] = val;
-      }
-    }
-  }
 
 };
