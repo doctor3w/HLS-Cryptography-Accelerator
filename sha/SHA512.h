@@ -27,6 +27,7 @@ public:
   // len <= 128
   SHA512Hash digest();
   SHA512ByteHash byte_digest();
+  void update(const void *msgp, uint8_t len);
 
   static const uint8_t HASH_SIZE = 64;
 
