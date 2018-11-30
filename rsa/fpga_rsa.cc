@@ -13,15 +13,16 @@ void dut(hls::stream<bit32_t>& strm_in, hls::stream<bit32_t>& strm_out) {
 RsaBignum read_rsa_num(hls::stream<bit32_t>& in) {
   HLS_PRAGMA(inline);
   RsaBignum result;
-READ_LOOP: 
+READ_LOOP:
   for (int x = 0; x < MAX_BIT_LEN / BITS_PER_DIGIT; x++) {
     ap_uint<INT32S_PER_DIGIT * 32> temp;
-DIGIT_LOOP: for (int y = 0; y < INT32S_PER_DIGIT; y++) {
-    HLS_PRAGMA(unroll);
-    temp(32 * y + 31, 32 * y) = in.read();
+  DIGIT_LOOP:
+    for (int y = 0; y < INT32S_PER_DIGIT; y++) {
+      HLS_PRAGMA(unroll);
+      temp(32 * y + 31, 32 * y) = in.read();
+    }
+    result.set_block(x, temp);
   }
-  result.set_block(x, temp);
-}
   return result;
 }
 
@@ -29,7 +30,8 @@ void write_rsa_num(RsaBignum num, hls::stream<bit32_t>& out) {
   HLS_PRAGMA(inline);
 WRITE_LOOP:
   for (int x = 0; x < MAX_BIT_LEN / BITS_PER_DIGIT; x++) {
-DIGIT_LOOP: for (int y = 0; y < INT32S_PER_DIGIT; y++) {
+  DIGIT_LOOP:
+    for (int y = 0; y < INT32S_PER_DIGIT; y++) {
       out.write(num.block(x)(32 * y + 31, 32 * y));
     }
   }
@@ -38,7 +40,7 @@ DIGIT_LOOP: for (int y = 0; y < INT32S_PER_DIGIT; y++) {
 RsaBignum fpga_powm(RsaBignum base, RsaBignum exponent, RsaBignum modulus) {
   HLS_PRAGMA(inline);
   RsaBignum result(1);
-  
+
   if (modulus == result) {
     return RsaBignum(0);
   }

@@ -23,7 +23,6 @@ typedef FpgaTimer Timer;
 typedef SimTimer Timer;
 #endif
 
-
 typedef struct {
   mpz_t n;
   mpz_t e;

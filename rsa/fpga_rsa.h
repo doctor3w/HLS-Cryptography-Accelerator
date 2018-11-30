@@ -6,7 +6,7 @@
 #include "rsa_config.h"
 
 const int BITS_PER_DIGIT = 128;
-const int INT32S_PER_DIGIT = BITS_PER_DIGIT/32;
+const int INT32S_PER_DIGIT = BITS_PER_DIGIT / 32;
 typedef Bignum<2 * MAX_BIT_LEN / BITS_PER_DIGIT, BITS_PER_DIGIT> RsaBignum;
 typedef ap_uint<32> bit32_t;
 
