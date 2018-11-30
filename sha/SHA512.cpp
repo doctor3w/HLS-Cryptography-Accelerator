@@ -48,6 +48,7 @@ static const uint64_t K[80] = {
 
 SHA512Hasher::SHA512Hasher() {
   reset();
+  memset_u8<BLOCK_SIZE>(buf, 0, BLOCK_SIZE);
 }
 
 
