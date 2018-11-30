@@ -2,9 +2,9 @@
 #pragma once
 
 #include <stdint.h>
+
 #include <string.h>
 #include "helpers.h"
-
 
 struct SHA512Hash {
   uint64_t hash[8];
@@ -55,7 +55,6 @@ private:
   uint8_t buf[BLOCK_SIZE]; // TODO: This should be partitioned in chunks of 8
   uint8_t bsize;
   uint64_t total;
-
 
   void hashBlock();
   // Rotate right n

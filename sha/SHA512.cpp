@@ -61,10 +61,10 @@ void SHA512Hasher::reset() {
 SHA512Hash SHA512Hasher::digest() {
   buf[bsize++] = 0x80;
   // zero out buffer
-  memset_u8<BLOCK_SIZE>(buf + bsize, 0, BLOCK_SIZE - bsize);
+  //memset_u8<BLOCK_SIZE>(buf + bsize, 0, BLOCK_SIZE - bsize);
   if (BLOCK_SIZE - bsize < 2*sizeof(uint64_t)) { // No room
     hashBlock(); //update
-    memset_u8<BLOCK_SIZE>(buf, 0, BLOCK_SIZE - sizeof(uint64_t));
+    //memset_u8<BLOCK_SIZE>(buf, 0, BLOCK_SIZE - sizeof(uint64_t));
   }
   uint64_t size = total*8;
   // TODO unroll this
@@ -112,7 +112,7 @@ void SHA512Hasher::hashBlock() {
   // Do first 16 rounds
 LOOP16:
   for (int j=0; j < 16; j++) {
-    uint64_t wcurr = read64(buf, sizeof(uint64_t)*j);
+    uint64_t wcurr = read64clear(buf, sizeof(uint64_t)*j);
     W[j] = wcurr;
     uint64_t T1 = h + CSigma1(e) + Ch(e, f, g) + K[j] + wcurr;
     uint64_t T2 = CSigma0(a) + Maj(a, b, c);
