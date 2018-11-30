@@ -1,19 +1,18 @@
 #pragma once
 
 #include <gmp.h>
-#include "big_ap_int.h"
 
-template <int BIT_LEN>
-ap_uint<BIT_LEN> mpz_to_ap(mpz_t x) {
-  ap_uint<BIT_LEN> result = 0;
+template <typename T, int BIT_LEN>
+T mpz_to_ap(mpz_t x) {
+  T result(0);
   for (int i = 0; i < BIT_LEN; i++) {
-    result[i] = mpz_tstbit(x, i);
+    result.set(i, mpz_tstbit(x, i));
   }
   return result;
 }
 
-template <int BIT_LEN>
-void ap_to_mpz(mpz_t out, ap_uint<BIT_LEN> in) {
+template <typename T, int BIT_LEN>
+void ap_to_mpz(mpz_t out, T in) {
   mpz_set_si(out, 0);
   for (int i = 0; i < BIT_LEN; i++) {
     if (in[i]) {

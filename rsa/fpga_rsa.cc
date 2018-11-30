@@ -4,39 +4,45 @@
 #include "pragmas.h"
 
 void dut(hls::stream<bit32_t>& strm_in, hls::stream<bit32_t>& strm_out) {
-  RsaNum base = read_rsa_num(strm_in);
-  RsaNum exponent = read_rsa_num(strm_in);
-  RsaNum modulus = read_rsa_num(strm_in);
+  RsaBignum base = read_rsa_num(strm_in);
+  RsaBignum exponent = read_rsa_num(strm_in);
+  RsaBignum modulus = read_rsa_num(strm_in);
   write_rsa_num(fpga_powm(base, exponent, modulus), strm_out);
 }
 
-RsaNum read_rsa_num(hls::stream<bit32_t>& in) {
+RsaBignum read_rsa_num(hls::stream<bit32_t>& in) {
   HLS_PRAGMA(inline);
-  RsaNum result = 0;
-READ_LOOP:
-  for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
+  RsaBignum result;
+READ_LOOP: 
+  for (int x = 0; x < MAX_BIT_LEN / BITS_PER_DIGIT; x++) {
+    ap_uint<INT32S_PER_DIGIT * 32> temp;
+DIGIT_LOOP: for (int y = 0; y < INT32S_PER_DIGIT; y++) {
     HLS_PRAGMA(unroll);
-    result(x * 32 + 31, x * 32) = in.read();
+    temp(32 * y + 31, 32 * y) = in.read();
   }
+  result.set_block(x, temp);
+}
   return result;
 }
 
-void write_rsa_num(RsaNum num, hls::stream<bit32_t>& out) {
+void write_rsa_num(RsaBignum num, hls::stream<bit32_t>& out) {
   HLS_PRAGMA(inline);
 WRITE_LOOP:
-  for (int x = 0; x < MAX_BIT_LEN / 32; x++) {
-    HLS_PRAGMA(unroll);
-    out.write(num(x * 32 + 31, x * 32));
+  for (int x = 0; x < MAX_BIT_LEN / BITS_PER_DIGIT; x++) {
+DIGIT_LOOP: for (int y = 0; y < INT32S_PER_DIGIT; y++) {
+      out.write(num.block(x)(32 * y + 31, 32 * y));
+    }
   }
 }
 
-RsaNum fpga_powm(RsaNum base, RsaNum exponent, RsaNum modulus) {
+RsaBignum fpga_powm(RsaBignum base, RsaBignum exponent, RsaBignum modulus) {
   HLS_PRAGMA(inline);
-  if (modulus == 1) {
-    return 0;
+  RsaBignum result(1);
+  
+  if (modulus == result) {
+    return RsaBignum(0);
   }
 
-  RsaBignum result(1);
   RsaBignum b(base);
   RsaBignum e(exponent);
   RsaBignum m(modulus);
@@ -53,5 +59,5 @@ POWM_LOOP:
       b = (b * b) % m;
     }
   }
-  return result.to_ap_uint();
+  return result;
 }
