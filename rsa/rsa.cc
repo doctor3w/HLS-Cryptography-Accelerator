@@ -15,6 +15,15 @@
 #include "fpga_rsa.h"
 #endif
 
+#if defined FPGA_REAL
+#include "fpga_timer.h"
+typedef FpgaTimer Timer;
+#else
+#include "sim_timer.h"
+typedef SimTimer Timer;
+#endif
+
+
 typedef struct {
   mpz_t n;
   mpz_t e;
@@ -300,7 +309,10 @@ int main() {
       "hi my name is bob and I am super long. I am a really long really cool "
       "message that will require multiple blocks. Haha take t";
   char out[128 * 50];
+  Timer encrypt_timer("encrypt");
+  encrypt_timer.start();
   int len = encrypt(out, sizeof(out), in, strlen(in) + 1, kp, 1);
+  encrypt_timer.stop();
   if (len == -1) {
     printf("encryption failed\n");
     return 1;
@@ -308,7 +320,10 @@ int main() {
   printf("Encrypted: %d\n", len);
   print_buf(out, len);
   char result[125];
+  Timer decrypt_timer("decrypt");
+  decrypt_timer.start();
   len = decrypt(result, sizeof(result), out, len, ku, 1);
+  decrypt_timer.stop();
   if (len == -1) {
     printf("decryption failed\n");
     return 1;

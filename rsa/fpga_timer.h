@@ -31,7 +31,7 @@ class FpgaTimer {
   //------------------------------------------------------------------
   // constructor
   //------------------------------------------------------------------
-  Timer(const char* Name = "", bool On = false) {
+  FpgaTimer(const char* Name = "", bool On = false) {
     if (On) {
       // record the start time
       gettimeofday(&ts_start, NULL);
@@ -46,7 +46,7 @@ class FpgaTimer {
   //------------------------------------------------------------------
   // destructor
   //------------------------------------------------------------------
-  ~Timer() {
+  ~FpgaTimer() {
     // on being destroyed, print the average and total time
     if (nCalls > 0) {
       printf("%-20s: ", binName);
