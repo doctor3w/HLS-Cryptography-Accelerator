@@ -9,39 +9,50 @@
 
 template <typename T, int LEN>
 struct Array {
+  friend bool operator==(const Array<T, LEN>& u, const Array<T, LEN>& v) {
+    HLS_PRAGMA(inline);
+    for (int x = 0; x < LEN; x++) {
+      HLS_PRAGMA(unroll factor=4);
+      if (u.data[x] != v.data[x]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  friend bool operator!=(const Array<T, LEN>& u, const Array<T, LEN>& v) {
+    HLS_PRAGMA(inline);
+    return !(u == v);
+  }
   T data[LEN];
 };
 
 template <int MAX_DIGITS, int BITS>
 class Bignum {
  public:
-  typedef ap_uint<MAX_DIGITS * BITS> BigAp;
   typedef ap_uint<BITS> Digit;
   typedef ap_uint<2 * BITS> Wigit;
 
-  Bignum(BigAp value = 0) {
+  Bignum(Digit low = 0) {
     HLS_PRAGMA(inline);
+    set_block(0, low);
   INIT:
-    for (int x = 0; x < MAX_DIGITS; x++) {
+    for (int x = 1; x < MAX_DIGITS; x++) {
       HLS_PRAGMA(unroll);
-      set_block(x, value(x * BITS + BITS - 1, x * BITS));
+      set_block(x, 0);
     }
-  }
-
-  BigAp to_ap_uint() {
-    HLS_PRAGMA(inline off);
-    BigAp result = 0;
-  CONVERT:
-    for (int x = 0; x < MAX_DIGITS; x++) {
-      HLS_PRAGMA(unroll);
-      result(x * BITS + BITS - 1, x * BITS) = block(x);
-    }
-    return result;
   }
 
   int operator[](int index) const {
     HLS_PRAGMA(inline);
     return block(index / BITS)[index % BITS];
+  }
+
+  void set(int index, int value) {
+    HLS_PRAGMA(inline);
+    if (index < MAX_DIGITS * BITS) {
+      digits.data[index / BITS][index % BITS] = value;
+    }
   }
 
   void set_block(int i, Digit v) {
@@ -145,7 +156,7 @@ class Bignum {
       Wigit k = 0;
     PARTIAL:
       for (int i = 0; i < MAX_DIGITS; ++i) {
-        HLS_PRAGMA(unroll factor = 2);
+        HLS_PRAGMA(unroll factor = 4);
         if (i >= n) break;
         k += qhat * v.block(i);
         w.set_block(i, static_cast<Digit>(k));
@@ -163,7 +174,7 @@ class Bignum {
         int i = n;
       COMPARE:
         for (int y = 0; y < MAX_DIGITS; y++) {
-          HLS_PRAGMA(unroll factor = 2);
+          HLS_PRAGMA(unroll factor = 4);
           if (i == 0 || r.block(j + i) != w.block(i)) {
             break;
           }
@@ -175,7 +186,7 @@ class Bignum {
           k = 0;
         ADJUST:
           for (int i = 0; i < MAX_DIGITS; ++i) {
-            HLS_PRAGMA(unroll factor = 2);
+            HLS_PRAGMA(unroll);
             if (i >= n) break;
             k = k + w.block(i) - v.block(i);
             w.set_block(i, static_cast<Digit>(k));
@@ -190,7 +201,7 @@ class Bignum {
       k = 0;
     REM:
       for (int i = 0; i < MAX_DIGITS; ++i) {
-        HLS_PRAGMA(unroll factor = 2);
+        HLS_PRAGMA(unroll factor = 4);
         if (i >= n) break;
         k = k + r.block(j + i) - w.block(i);
         r.set_block(j + i, static_cast<Digit>(k));
@@ -200,6 +211,7 @@ class Bignum {
 
   CLEAR_UPPER:
     for (int x = 0; x < MAX_DIGITS; x++) {
+      HLS_PRAGMA(unroll factor = 4);
       if (x >= n) {
         r.set_block(x, 0);
       }

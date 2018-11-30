@@ -19,38 +19,38 @@ static const char b64t[65] =
 "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 
-static inline SHA512ByteHash runIters(int slen, int pwlen,
+static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
+                                      int slen, int pwlen,
                                       const SHA512ByteHash &A,
                                       const uint8_t DS[SHA512Hasher::HASH_SIZE],
                                       const uint8_t DP[SHA512Hasher::HASH_SIZE],
                                       int nrounds=5000) {
-  SHA512Hasher Ch;
   SHA512ByteHash C = A;
 
   for (int i=0; i < nrounds; i++) {
-    Ch.reset();
+    hasher.reset();
 
     if (i % 2 == 1) {
-      Ch.update<MAX_PWD_LEN>(DP, pwlen);
+      hasher.update(DP, pwlen);
     } else {
-      Ch.update<SHA512Hasher::HASH_SIZE>(C.hash, SHA512Hasher::HASH_SIZE);
+      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
 
     if (i % 3 != 0) {
-      Ch.update<MAX_SALT_LEN>(DS, slen);
+      hasher.update(DS, slen);
     }
 
     if (i % 7 != 0) {
-      Ch.update<MAX_PWD_LEN>(DP, pwlen);
+      hasher.update(DP, pwlen);
     }
 
     if (i % 2 == 0) {
-      Ch.update<MAX_PWD_LEN>(DP, pwlen);
+      hasher.update(DP, pwlen);
     } else {
-      Ch.update<SHA512Hasher::HASH_SIZE>(C.hash, SHA512Hasher::HASH_SIZE);
+      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
 
-    C = Ch.byte_digest();
+    C = hasher.byte_digest();
   }
   return C;
 
@@ -60,47 +60,52 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
   assert(pwlen <= 64);
   assert(slen <= 64);
   // Compute B
-  SHA512Hasher Bh;
-  Bh.update<MAX_PWD_LEN>(pwd, pwlen);
-  Bh.update<MAX_SALT_LEN>(salt, slen);
-  Bh.update<MAX_PWD_LEN>(pwd, pwlen);
-  SHA512ByteHash B = Bh.byte_digest();
+  SHA512Hasher hasher;
+  hasher.update(pwd, pwlen);
+  hasher.update(salt, slen);
+  hasher.update(pwd, pwlen);
+  SHA512ByteHash B = hasher.byte_digest();
+
+  hasher.reset();
 
   // Compute A
-  SHA512Hasher Ah;
-  Ah.update<MAX_PWD_LEN>(pwd, pwlen);
-  Ah.update<MAX_SALT_LEN>(salt, slen);
-  Ah.update<MAX_PWD_LEN>(B.hash, pwlen);
+  hasher.update(pwd, pwlen);
+  hasher.update(salt, slen);
+  hasher.update(B.hash, pwlen);
 
   uint8_t curr = pwlen;
   for (int i=0; i < 8; i++) {
     if (curr) {
       if (curr & 1) {
-        Ah.update<SHA512Hasher::HASH_SIZE>(B.hash, sizeof(B.hash));
+        hasher.update(B.hash, sizeof(B.hash));
       } else {
-        Ah.update<MAX_PWD_LEN>(pwd, pwlen);
+        hasher.update(pwd, pwlen);
       }
     }
     curr >>= 1;
   }
-  SHA512ByteHash A = Ah.byte_digest();
+  SHA512ByteHash A = hasher.byte_digest();
+
+  hasher.reset();
 
   // Compute DP
-  SHA512Hasher DPh;
   for (int i=0; i < pwlen; i++) {
-    DPh.update<MAX_PWD_LEN>(pwd, pwlen);
+    hasher.update(pwd, pwlen);
   }
-  SHA512ByteHash DP = DPh.byte_digest();
+  SHA512ByteHash DP = hasher.byte_digest();
+
+  hasher.reset();
+
   // Compute DS
-  SHA512Hasher DSh;
   for (int i=0; i < 16 + A.hash[0]; i++) {
-    DSh.update<MAX_SALT_LEN>(salt, slen);
+    hasher.update(salt, slen);
   }
-  SHA512ByteHash DS = DSh.byte_digest();
+  SHA512ByteHash DS = hasher.byte_digest();
+
 
   // Note P is the first N bytes of DP
   // We reuse A for C
-  A = runIters(slen, pwlen, A, DS.hash, DP.hash, nrounds);
+  A = runIters(hasher, slen, pwlen, A, DS.hash, DP.hash, nrounds);
 
   // TODO: unroll this
   for (int i=0; i < 21; i++) {

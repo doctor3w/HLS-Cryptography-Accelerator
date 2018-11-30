@@ -6,27 +6,22 @@
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
 
-template <int MAX_LEN>
+
 inline void memcpy_u8(uint8_t *dest, const uint8_t *src, int nbytes) {
   // TODO: unroll this
 LOOP:
-  for (int i=0; i < MAX_LEN; i++) {
-    if (i < nbytes) {
-        dest[i] = src[i];
-    }
+  for (int i=0; i < nbytes; i++) {
+    dest[i] = src[i];
   }
 }
 
-template <int MAX_LEN>
+
 inline void memset_u8(uint8_t *dest, uint8_t val, int nbytes) {
 LOOP:
-  for (int i=0; i < MAX_LEN; i++) {
-    if (i < nbytes) {
-        dest[i] = val;
-    }
+  for (int i=0; i < nbytes; i++) {
+    dest[i] = val;
   }
 }
-
 
 // Unroll completely
 static inline uint64_t read64clear(uint8_t *arr, int sidx) {

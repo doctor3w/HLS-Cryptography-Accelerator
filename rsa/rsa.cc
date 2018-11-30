@@ -23,7 +23,6 @@ typedef FpgaTimer Timer;
 typedef SimTimer Timer;
 #endif
 
-
 typedef struct {
   mpz_t n;
   mpz_t e;
@@ -145,9 +144,9 @@ Host* fpga_host;
 
 #if defined FPGA_REAL || defined FPGA_SIM
 void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
-  RsaNum data_ap = mpz_to_ap<MAX_BIT_LEN>(data);
-  RsaNum n_ap = mpz_to_ap<MAX_BIT_LEN>(n);
-  RsaNum e_ap = mpz_to_ap<MAX_BIT_LEN>(e);
+  RsaBignum data_ap = mpz_to_ap<RsaBignum, MAX_BIT_LEN>(data);
+  RsaBignum n_ap = mpz_to_ap<RsaBignum, MAX_BIT_LEN>(n);
+  RsaBignum e_ap = mpz_to_ap<RsaBignum, MAX_BIT_LEN>(e);
 
 #ifdef FPGA_SIM
   hls::stream<bit32_t> in_stream, out_stream;
@@ -155,7 +154,7 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   write_rsa_num(e_ap, in_stream);
   write_rsa_num(n_ap, in_stream);
   dut(in_stream, out_stream);
-  ap_to_mpz(out, read_rsa_num(out_stream));
+  ap_to_mpz<RsaBignum, MAX_BIT_LEN>(out, read_rsa_num(out_stream));
 #else
   uint32_t buf[3 * MAX_BIT_LEN / 32];
   to_buf(buf, data_ap);
@@ -163,7 +162,7 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   to_buf(buf + 2 * MAX_BIT_LEN / 32, n_ap);
   fpga_host->write((char*)buf, sizeof(buf));
   fpga_host->read((char*)buf, MAX_BYTES);
-  ap_to_mpz(out, from_buf<MAX_BIT_LEN>(buf));
+  ap_to_mpz<RsaBignum, MAX_BIT_LEN>(out, from_buf(buf));
 #endif
 }
 #endif

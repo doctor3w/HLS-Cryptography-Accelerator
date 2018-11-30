@@ -30,7 +30,7 @@ create_clock -period 9
 # Partition the array so 64_bit accesses are fast
 set_directive_array_partition SHA512Hasher::SHA512Hasher buf -type cyclic -factor 8
 
-set_directive_unroll read64/LOOP
+set_directive_unroll read64clear/LOOP
 set_directive_unroll -factor 8 memcpy_u8/LOOP
 set_directive_unroll -factor 8 memset_u8/LOOP
 set_directive_unroll SHA512Hasher::digest/LOOP_U64
@@ -51,5 +51,5 @@ csim_design -O
 # Synthesize the design
 csynth_design
 # Co-simulate the design
-cosim_design
+ cosim_design
 exit

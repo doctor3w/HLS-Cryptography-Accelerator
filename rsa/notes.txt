@@ -1,0 +1,4 @@
+https://people.eecs.berkeley.edu/~fateman/282/F%20Wright%20notes/week4.pdf
+https://possiblywrong.wordpress.com/2018/09/02/arbitrary-precision-rational-arithmetic-in-c/
+https://possiblywrong.wordpress.com/2015/10/10/arbitrary-precision-integer-arithmetic-in-c/
+https://github.com/possibly-wrong/precision
