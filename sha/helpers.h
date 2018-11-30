@@ -29,7 +29,7 @@ LOOP:
 
 
 // Unroll completely
-static inline uint64_t read64clear(const uint8_t *arr, int sidx) {
+static inline uint64_t read64clear(uint8_t *arr, int sidx) {
   uint64_t ret = 0;
   // TODO: unroll this
 LOOP:
