@@ -88,11 +88,12 @@ class Bignum {
     Bignum w;
   OUTER:
     for (int j = 0; j < MAX_DIGITS; ++j) {
+        HLS_PRAGMA(unroll);
       if (j >= n) break;
       Wigit k = 0;
     INNER:
       for (int i = 0; i < MAX_DIGITS; ++i) {
-        HLS_PRAGMA(unroll factor = 2);
+        HLS_PRAGMA(unroll);
         if (i >= m) break;
         k += static_cast<Wigit>(u.block(i)) * v.block(j) + w.block(i + j);
         w.set_block(i + j, static_cast<Digit>(k));
