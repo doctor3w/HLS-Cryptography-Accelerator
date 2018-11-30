@@ -64,7 +64,7 @@ class Bignum {
     HLS_PRAGMA(inline);
   SIZE:
     for (int result = MAX_DIGITS - 1; result >= 0; result--) {
-      HLS_PRAGMA(unroll factor=2);
+      HLS_PRAGMA(unroll factor = 2);
       if (block(result) != 0) {
         return result + 1;
       }

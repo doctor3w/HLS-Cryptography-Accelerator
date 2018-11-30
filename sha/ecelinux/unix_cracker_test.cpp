@@ -10,16 +10,16 @@ extern void dut(hls::stream<ap_uint<32> >&, hls::stream<ap_uint<32> >&);
 
 int main() {
   // Note: if using crypt, prepend with $6$
-  const char salt[MAX_SALT_LEN] = "8n./Hzqd";
-  const char pass[MAX_PWD_LEN] = "This is my password!";
+  const char salt[MAX_SALT_LEN+1] = "8n./Hzqd";
+  const char pass[MAX_PWD_LEN+1] = "This is my password!";
   hls::stream<ap_uint<32> > in;
   hls::stream<ap_uint<32> > out;
   // Write salt
-  for (int i=0; i < strlen(salt) + 1; i++) {
+  for (int i=0; i < strlen(salt)+1; i++) {
     in.write(salt[i]);
   }
 
-  for (int i=0; i < strlen(pass) + 1; i++) {
+  for (int i=0; i < strlen(pass)+1; i++) {
     in.write(pass[i]);
   }
 

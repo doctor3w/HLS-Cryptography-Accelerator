@@ -15,6 +15,15 @@
 #include "fpga_rsa.h"
 #endif
 
+#if defined FPGA_REAL
+#include "fpga_timer.h"
+typedef FpgaTimer Timer;
+#else
+#include "sim_timer.h"
+typedef SimTimer Timer;
+#endif
+
+
 typedef struct {
   mpz_t n;
   mpz_t e;
@@ -26,6 +35,14 @@ typedef struct {
   mpz_t d;
   int bytes;
 } private_key_t;
+
+void print_buf(char* buf, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    if (i % 128 == 0) printf("\n");
+    printf("%02hhX", (int)buf[i]);
+  }
+  printf("\n");
+}
 
 void fill_random(char* buf, size_t len) {
   size_t filled = 0;
@@ -145,7 +162,7 @@ void fpga_rsa_block_adapter(mpz_t out, mpz_t data, mpz_t n, mpz_t e) {
   to_buf(buf + MAX_BIT_LEN / 32, e_ap);
   to_buf(buf + 2 * MAX_BIT_LEN / 32, n_ap);
   fpga_host->write((char*)buf, sizeof(buf));
-  fpga_host->read((char*)buf, MAX_BIT_LEN / 32);
+  fpga_host->read((char*)buf, MAX_BYTES);
   ap_to_mpz(out, from_buf<MAX_BIT_LEN>(buf));
 #endif
 }
@@ -173,7 +190,7 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
   int bytes = kp.bytes;
   // 1 byte less for length, 1 byte less for space
   int chunk_size = bytes - 1;
-  int bytes_per_chunk = chunk_size - 2;
+  int bytes_per_chunk = chunk_size - 1;
 
   char iv[MAX_BYTES];
   if (use_cbc) {
@@ -195,6 +212,7 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
     memcpy(buf, message + x, size);
     fill_random(buf + size, bytes_per_chunk - size);
     buf[bytes_per_chunk] = (char)size;
+    buf[chunk_size] = 0;
 
     if (use_cbc) {
       xor_array(buf, iv, chunk_size);
@@ -208,7 +226,7 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
       break;
     }
     int off = loc + (bytes - (mpz_sizeinbase(c, 2) + 8 - 1) / 8);
-    memset(cipher + loc, 0, off-loc);
+    memset(cipher + loc, 0, off - loc);
     mpz_export(cipher + off, NULL, 1, sizeof(char), 0, 0, c);
     memcpy(iv, cipher + loc, bytes);
     loc += bytes;
@@ -224,7 +242,7 @@ int decrypt(char* message, int message_len, const char* cipher, int length,
   int bytes = ku.bytes;
   // 1 byte less for length, 1 byte less for space
   int chunk_size = bytes - 1;
-  int bytes_per_chunk = chunk_size - 2;
+  int bytes_per_chunk = chunk_size - 1;
 
   char iv[MAX_BYTES];
   if (use_cbc) {
@@ -263,13 +281,6 @@ int decrypt(char* message, int message_len, const char* cipher, int length,
   return msg_idx;
 }
 
-void print_buf(char* buf, size_t len) {
-  for (size_t i = 0; i < len; i++) {
-    printf("%02hhX", (int)buf[i]);
-  }
-  printf("\n");
-}
-
 int main() {
   private_key_t ku;
   public_key_t kp;
@@ -298,7 +309,10 @@ int main() {
       "hi my name is bob and I am super long. I am a really long really cool "
       "message that will require multiple blocks. Haha take t";
   char out[128 * 50];
+  Timer encrypt_timer("encrypt");
+  encrypt_timer.start();
   int len = encrypt(out, sizeof(out), in, strlen(in) + 1, kp, 1);
+  encrypt_timer.stop();
   if (len == -1) {
     printf("encryption failed\n");
     return 1;
@@ -306,7 +320,10 @@ int main() {
   printf("Encrypted: %d\n", len);
   print_buf(out, len);
   char result[125];
+  Timer decrypt_timer("decrypt");
+  decrypt_timer.start();
   len = decrypt(result, sizeof(result), out, len, ku, 1);
+  decrypt_timer.stop();
   if (len == -1) {
     printf("decryption failed\n");
     return 1;

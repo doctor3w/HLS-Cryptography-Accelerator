@@ -1,12 +1,10 @@
 
 #pragma once
 
-#include <string.h>
 #include <stdint.h>
 
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
+#include <string.h>
+#include "helpers.h"
 
 struct SHA512Hash {
   uint64_t hash[8];
@@ -27,16 +25,36 @@ public:
   SHA512Hasher();
   void reset();
   // len <= 128
-  void update(const void *msgp, uint8_t len);
   SHA512Hash digest();
   SHA512ByteHash byte_digest();
 
+  template <int MAX_LEN>
+  void update(const void *msgp, uint8_t len) {
+    assert (len <= MAX_LEN);
+    uint8_t *msg = (uint8_t*)msgp;
+    uint8_t remain = BLOCK_SIZE - bsize;
+    uint8_t tocpy = MIN(remain, len);
+    memcpy_u8<MAX_LEN>(buf+bsize, msg, tocpy);
+
+    if (tocpy < len || len == remain) { // Not enough room or full
+      hashBlock();
+      bsize = len - tocpy;
+      memcpy_u8<MAX_LEN>(buf, msg + tocpy, bsize);
+    } else { // Enough room
+      bsize += len;
+    }
+
+    total += len;
+  }
+
+  static const uint8_t HASH_SIZE = 64;
+
 private:
+  static const uint8_t BLOCK_SIZE = 128;
   SHA512Hash state;
-  uint8_t buf[128]; // TODO: This should be partitioned in chunks of 8
+  uint8_t buf[BLOCK_SIZE]; // TODO: This should be partitioned in chunks of 8
   uint8_t bsize;
   uint64_t total;
-
 
   void hashBlock();
   // Rotate right n

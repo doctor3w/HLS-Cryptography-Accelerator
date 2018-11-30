@@ -5,7 +5,7 @@
 #include "hls_stream.h"
 #include "rsa_config.h"
 
-const int BITS_PER_DIGIT = 32;
+const int BITS_PER_DIGIT = 64;
 typedef Bignum<2 * MAX_BIT_LEN / BITS_PER_DIGIT, BITS_PER_DIGIT> RsaBignum;
 typedef ap_uint<MAX_BIT_LEN> RsaNum;
 typedef ap_uint<32> bit32_t;

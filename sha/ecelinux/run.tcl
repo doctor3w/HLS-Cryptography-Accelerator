@@ -40,7 +40,7 @@ set_directive_array_partition SHA512Hasher::hashBlock W -type complete
 set_directive_pipeline SHA512Hasher::hashBlock/LOOP16
 set_directive_pipeline SHA512Hasher::hashBlock/LOOP64
 # Currently this causes timing violations:
-# set_directive_unroll SHA512Hasher::hashBlock/LOOP64 -factor 2
+#set_directive_unroll SHA512Hasher::hashBlock/LOOP64 -factor 2
 set_directive_unroll SHA512Hasher::hashBlock/LOOP_SHIFT
 # set_directive_array_partition SHA512Hasher::hashBlock K	-type complete
 

@@ -8,7 +8,7 @@ add_files -tb rsa.cc -cflags $CFLAGS
 
 open_solution "solution1"
 set_part {xc7z020clg484-1}
-create_clock -period 10
+create_clock -period 9
 
 csim_design
 csynth_design

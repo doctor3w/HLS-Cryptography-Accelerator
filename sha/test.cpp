@@ -10,7 +10,7 @@ int main() {
   const char pass[] = "This is my password!";
 
   char hash[86];
-  for (int i=0; i < 1000; i++) {
+  for (int i=0; i < 1; i++) {
     calc(hash, pass, strlen(pass), salt, strlen(salt));
   }
   printf("%s\n", hash);
