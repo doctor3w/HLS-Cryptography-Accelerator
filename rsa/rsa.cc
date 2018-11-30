@@ -209,8 +209,6 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
       xor_array(buf, iv, chunk_size);
     }
 
-    printf("before encrypt:");
-    print_buf(buf, MAX_BYTES);
     mpz_import(m, chunk_size, 1, sizeof(buf[0]), 0, 0, buf);
     block_encrypt(c, m, kp);
 
@@ -219,11 +217,9 @@ int encrypt(char* cipher, int cipher_len, const char* message, int length,
       break;
     }
     int off = loc + (bytes - (mpz_sizeinbase(c, 2) + 8 - 1) / 8);
-    memset(cipher + loc, 0, off-loc);
+    memset(cipher + loc, 0, off - loc);
     mpz_export(cipher + off, NULL, 1, sizeof(char), 0, 0, c);
     memcpy(iv, cipher + loc, bytes);
-    printf("after encrypt:");
-    print_buf(iv, MAX_BYTES);
     loc += bytes;
   }
 
