@@ -12,6 +12,7 @@ struct Array {
   friend bool operator==(const Array<T, LEN>& u, const Array<T, LEN>& v) {
     HLS_PRAGMA(inline);
     for (int x = 0; x < LEN; x++) {
+      HLS_PRAGMA(unroll factor=4);
       if (u.data[x] != v.data[x]) {
         return false;
       }
@@ -88,12 +89,11 @@ class Bignum {
     Bignum w;
   OUTER:
     for (int j = 0; j < MAX_DIGITS; ++j) {
-        HLS_PRAGMA(unroll);
       if (j >= n) break;
       Wigit k = 0;
     INNER:
       for (int i = 0; i < MAX_DIGITS; ++i) {
-        HLS_PRAGMA(unroll);
+        HLS_PRAGMA(unroll factor = 2);
         if (i >= m) break;
         k += static_cast<Wigit>(u.block(i)) * v.block(j) + w.block(i + j);
         w.set_block(i + j, static_cast<Digit>(k));
@@ -156,7 +156,7 @@ class Bignum {
       Wigit k = 0;
     PARTIAL:
       for (int i = 0; i < MAX_DIGITS; ++i) {
-        HLS_PRAGMA(unroll factor = 2);
+        HLS_PRAGMA(unroll factor = 4);
         if (i >= n) break;
         k += qhat * v.block(i);
         w.set_block(i, static_cast<Digit>(k));
@@ -174,7 +174,7 @@ class Bignum {
         int i = n;
       COMPARE:
         for (int y = 0; y < MAX_DIGITS; y++) {
-          HLS_PRAGMA(unroll factor = 2);
+          HLS_PRAGMA(unroll factor = 4);
           if (i == 0 || r.block(j + i) != w.block(i)) {
             break;
           }
@@ -186,7 +186,7 @@ class Bignum {
           k = 0;
         ADJUST:
           for (int i = 0; i < MAX_DIGITS; ++i) {
-            HLS_PRAGMA(unroll factor = 2);
+            HLS_PRAGMA(unroll);
             if (i >= n) break;
             k = k + w.block(i) - v.block(i);
             w.set_block(i, static_cast<Digit>(k));
@@ -201,7 +201,7 @@ class Bignum {
       k = 0;
     REM:
       for (int i = 0; i < MAX_DIGITS; ++i) {
-        HLS_PRAGMA(unroll factor = 2);
+        HLS_PRAGMA(unroll factor = 4);
         if (i >= n) break;
         k = k + r.block(j + i) - w.block(i);
         r.set_block(j + i, static_cast<Digit>(k));
@@ -211,6 +211,7 @@ class Bignum {
 
   CLEAR_UPPER:
     for (int x = 0; x < MAX_DIGITS; x++) {
+      HLS_PRAGMA(unroll factor = 4);
       if (x >= n) {
         r.set_block(x, 0);
       }
