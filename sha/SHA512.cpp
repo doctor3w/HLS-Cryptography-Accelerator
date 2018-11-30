@@ -44,17 +44,6 @@ static const uint64_t K[80] = {
 };
 
 
-// Unroll completely
-static inline uint64_t read64(const uint8_t *arr, int sidx) {
-  uint64_t ret = 0;
-  // TODO: unroll this
-LOOP:
-  for (int i=0; i < sizeof(uint64_t); i++) {
-    ret <<= 8;
-    ret |= arr[sidx + i];
-  }
-  return ret;
-}
 
 
 SHA512Hasher::SHA512Hasher() {
