@@ -108,32 +108,12 @@ EXPAND_LOOP:
     j = i >> 2;
     k = (i % 4) * 32;
     roundKey[j].range(k + 31, k) = tempa ^ tempb;
-
-//    j = i * 4;
-//    k = (i - Nk) * 4;
-//    tempb = roundKey.range(k * 8 + 31, k * 8);
-//    roundKey(j * 8 + 31, j * 8) = tempb ^ tempa;
   }
 }
 
 static state_t AddRoundKey(uint8_t round, state_t state, roundkey_t roundKey) {
   #pragma HLS inline off
   return state ^ roundKey[round];
-//  uint8_t i,j;
-//  bit32_t a;
-//  bit128_t w4;
-//  w4 = roundKey[round];
-//ADD_ROUND:
-//  for (i = 0; i < 4; i++) {
-//    #pragma HLS unroll
-//    // add roundkey to each state column
-//    // s[r][c] ^= w_{round * Nb + c}
-//    j = round * Nb * 32 + i * Nb * 8;
-//    a = state.range(i * 32 + 31, i * 32);
-//    //b = roundKey.range(j + Nb * 8 - 1, j);
-//    state(i * 32 + 31, i * 32) = a ^ (w4.range(i * Nb * 8 + 31, i * Nb * 8));
-//  }
-//  return state;
 }
 
 static state_t SubBytes(state_t state) {
@@ -179,7 +159,7 @@ static state_t ShiftRows(state_t state) {
   state(120 + 7, 120) = state.range(88 + 7, 88);
   state(88 + 7, 88) = state.range(56 + 7, 56);
   state(56 + 7, 56) = temp;
-
+ 
   return state;
 }
 
@@ -191,28 +171,29 @@ static state_t MixColumns(state_t state) {
   #pragma HLS inline off
   uint8_t i, c_off;
   bit8_t all, comb, s0c;
-MIXCOL:  for (i = 0; i < 4; i++) {
+MIXCOL:
+  for (i = 0; i < 4; i++) {
     #pragma HLS unroll
     c_off = i * 32;
-    s0c = state.range(c_off + 31, c_off);
+    s0c = state.range(c_off + 7, c_off);
     all = state.range(c_off + 7, c_off) ^ state.range(c_off + 15, c_off + 8) 
           ^ state.range(c_off + 23, c_off + 16) ^ state.range(c_off + 31, c_off + 24);
     
     comb = state.range(c_off + 7, c_off) ^ state.range(c_off + 15, c_off + 8); 
     comb = xtime(comb);
-    state(c_off + 7, c_off) = comb ^ all;
+    state(c_off + 7, c_off) = state.range(c_off + 7, c_off) ^ comb ^ all;
     
     comb = state.range(c_off + 15, c_off + 8) ^ state.range(c_off + 23, c_off + 16);
     comb = xtime(comb);
-    state(c_off + 15, c_off + 8) = comb ^ all;
+    state(c_off + 15, c_off + 8) = state.range(c_off + 15, c_off + 8) ^ comb ^ all;
 
     comb = state.range(c_off + 23, c_off + 16) ^ state.range(c_off + 31, c_off + 24);
     comb = xtime(comb);
-    state(c_off + 23, c_off + 16) = comb ^ all;
+    state(c_off + 23, c_off + 16) = state.range(c_off + 23, c_off + 16) ^ comb ^ all;
 
     comb = state.range(c_off + 31, c_off + 24) ^ s0c;
     comb = xtime(comb);
-    state(c_off + 31, c_off + 24) = comb ^ all;
+    state(c_off + 31, c_off + 24) = state.range(c_off + 31, c_off + 24) ^ comb ^ all;
   }
   return state;
 }
@@ -266,6 +247,7 @@ void dut(
     // read in block
     for (j = 0; j < Nb; j++)
        buf(j * 32 + 31, j * 32) = strm_in.read();
+
     // encrypt IV
     iv_enc = Cipher(iv, w);
 
@@ -280,9 +262,9 @@ void dut(
     }
     
     buf ^= iv_enc;
-    //iv++;
+
     for (j = 0; j < Nb; j++)
-      strm_out.write(buf(j + 32 + 31, j * 32));
+      strm_out.write(buf(j * 32 + 31, j * 32));
   }
 }
 
