@@ -48,7 +48,7 @@ static const uint64_t K[80] = {
 
 SHA512Hasher::SHA512Hasher() {
   reset();
-  memset_u8<BLOCK_SIZE>(buf, 0, BLOCK_SIZE);
+  memset_u8(buf, 0, BLOCK_SIZE);
 }
 
 
@@ -62,10 +62,8 @@ void SHA512Hasher::reset() {
 SHA512Hash SHA512Hasher::digest() {
   buf[bsize++] = 0x80;
   // zero out buffer
-  //memset_u8<BLOCK_SIZE>(buf + bsize, 0, BLOCK_SIZE - bsize);
   if (BLOCK_SIZE - bsize < 2*sizeof(uint64_t)) { // No room
     hashBlock(); //update
-    //memset_u8<BLOCK_SIZE>(buf, 0, BLOCK_SIZE - sizeof(uint64_t));
   }
   uint64_t size = total*8;
   // TODO unroll this
@@ -96,6 +94,24 @@ LOOP_U64:
   return ret;
 }
 
+
+void SHA512Hasher::update(const void *msgp, uint8_t len) {
+  assert (len <= MAX_LEN);
+  uint8_t *msg = (uint8_t*)msgp;
+  uint8_t remain = BLOCK_SIZE - bsize;
+  uint8_t tocpy = MIN(remain, len);
+  memcpy_u8(buf+bsize, msg, tocpy);
+
+  if (tocpy < len || len == remain) { // Not enough room or full
+    hashBlock();
+    bsize = len - tocpy;
+    memcpy_u8(buf, msg + tocpy, bsize);
+  } else { // Enough room
+    bsize += len;
+  }
+
+  total += len;
+}
 
 
 void SHA512Hasher::hashBlock() {

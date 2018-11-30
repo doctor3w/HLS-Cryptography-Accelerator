@@ -28,25 +28,6 @@ public:
   SHA512Hash digest();
   SHA512ByteHash byte_digest();
 
-  template <int MAX_LEN>
-  void update(const void *msgp, uint8_t len) {
-    assert (len <= MAX_LEN);
-    uint8_t *msg = (uint8_t*)msgp;
-    uint8_t remain = BLOCK_SIZE - bsize;
-    uint8_t tocpy = MIN(remain, len);
-    memcpy_u8<MAX_LEN>(buf+bsize, msg, tocpy);
-
-    if (tocpy < len || len == remain) { // Not enough room or full
-      hashBlock();
-      bsize = len - tocpy;
-      memcpy_u8<MAX_LEN>(buf, msg + tocpy, bsize);
-    } else { // Enough room
-      bsize += len;
-    }
-
-    total += len;
-  }
-
   static const uint8_t HASH_SIZE = 64;
 
 private:
