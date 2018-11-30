@@ -2,7 +2,9 @@
 #pragma once
 
 #include <stdint.h>
-#include "helpers.h"
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 
 struct SHA512Hash {
@@ -54,7 +56,6 @@ private:
   uint8_t buf[BLOCK_SIZE]; // TODO: This should be partitioned in chunks of 8
   uint8_t bsize;
   uint64_t total;
-
 
   void hashBlock();
   // Rotate right n
