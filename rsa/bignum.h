@@ -37,7 +37,7 @@ class Bignum {
     set_block(0, low);
   INIT:
     for (int x = 1; x < MAX_DIGITS; x++) {
-    HLS_PRAGMA(unroll);
+      HLS_PRAGMA(unroll);
       set_block(x, 0);
     }
   }
@@ -74,7 +74,7 @@ class Bignum {
     HLS_PRAGMA(inline);
   SIZE:
     for (int result = MAX_DIGITS - 1; result >= 0; result--) {
-    HLS_PRAGMA(unroll);
+      HLS_PRAGMA(unroll);
       if (block(result) != 0) {
         return result + 1;
       }
@@ -207,7 +207,7 @@ class Bignum {
 
   void lshift_safe(int rhs) {
     HLS_PRAGMA(inline);
-      int s = size();
+    int s = size();
     if (block(s - 1) != 0 && rhs != 0) {
       Wigit k = 0;
     SHIFT:
@@ -225,16 +225,16 @@ class Bignum {
 
   void rshift_safe(int rhs) {
     HLS_PRAGMA(inline);
-      Wigit k = 0;
-      int j = size();
-    SHIFT:
-      for (int x = 0; x < MAX_DIGITS; x++) {
-        if (j == 0) break;
-        j--;
-        k = k << BITS | block(j);
-        set_block(j, static_cast<Digit>(k >> rhs));
-        k = static_cast<Digit>(k);
-      }
+    Wigit k = 0;
+    int j = size();
+  SHIFT:
+    for (int x = 0; x < MAX_DIGITS; x++) {
+      if (j == 0) break;
+      j--;
+      k = k << BITS | block(j);
+      set_block(j, static_cast<Digit>(k >> rhs));
+      k = static_cast<Digit>(k);
+    }
   }
 
   friend bool operator<(const Bignum& u, const Bignum& v) {
@@ -245,7 +245,7 @@ class Bignum {
     }
   COMPARE:
     for (int x = 0; x < MAX_DIGITS; x++) {
-        HLS_PRAGMA(unroll);
+      HLS_PRAGMA(unroll);
       n--;
       if (n == 0 || u.block(n) != v.block(n)) break;
     }
