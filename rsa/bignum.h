@@ -89,6 +89,7 @@ class Bignum {
       Wigit k = 0;
     INNER:
       for (int i = 0; i < MAX_DIGITS; ++i) {
+        HLS_PRAGMA(unroll factor=2);
         k += static_cast<Wigit>(u.block(i)) * v.block(j) + w.block(i + j);
         w.set_block(i + j, static_cast<Digit>(k));
         k >>= BITS;
@@ -120,6 +121,7 @@ class Bignum {
     Digit vn = v.block(n - 1);
   NORMALIZE:
     for (int magic = 0; magic < BITS; magic++) {
+      HLS_PRAGMA(unroll factor=2);
       if (vn == 0) break;
       vn >>= 1;
       --d;
@@ -147,6 +149,7 @@ class Bignum {
       Wigit k = 0;
     PARTIAL:
       for (int i = 0; i < MAX_DIGITS; ++i) {
+        HLS_PRAGMA(unroll factor=2);
         if (i >= n) break;
         k += qhat * v.block(i);
         w.set_block(i, static_cast<Digit>(k));
@@ -160,6 +163,7 @@ class Bignum {
         int i = n;
       COMPARE:
         for (int y = 0; y < MAX_DIGITS; y++) {
+          HLS_PRAGMA(unroll factor=2);
           if (i == 0 || r.block(j + i) != w.block(i)) {
             break;
           }
@@ -188,6 +192,7 @@ class Bignum {
       k = 0;
     REM:
       for (int i = 0; i < MAX_DIGITS; ++i) {
+        HLS_PRAGMA(unroll factor=2);
         if (i >= n) break;
         k = k + r.block(j + i) - w.block(i);
         r.set_block(j + i, static_cast<Digit>(k));
@@ -197,6 +202,7 @@ class Bignum {
 
   CLEAR_UPPER:
     for (int x = 0; x < MAX_DIGITS; x++) {
+      HLS_PRAGMA(unroll factor=2);
       if (x >= n) {
         r.set_block(x, 0);
       }
@@ -212,6 +218,7 @@ class Bignum {
       Wigit k = 0;
     SHIFT:
       for (int j = 0; j < MAX_DIGITS; ++j) {
+      HLS_PRAGMA(unroll factor=2);
         if (j >= s) break;
         k |= static_cast<Wigit>(block(j)) << rhs;
         set_block(j, static_cast<Digit>(k));
@@ -229,6 +236,7 @@ class Bignum {
     int j = size();
   SHIFT:
     for (int x = 0; x < MAX_DIGITS; x++) {
+    HLS_PRAGMA(unroll factor=2);
       if (j == 0) break;
       j--;
       k = k << BITS | block(j);
