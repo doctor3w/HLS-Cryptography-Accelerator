@@ -57,7 +57,7 @@ POWM_LOOP:
       if (e[0] == 1) {
         result = (result * b) % m;
       }
-      e = e >> 1;
+      e.rshift_safe(1);
       b = (b * b) % m;
     }
   }
