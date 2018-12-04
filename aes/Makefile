@@ -17,9 +17,16 @@ CFLAGS = -g -I${VHLS_INC}
 all: csim
 
 csim: aes.cpp aes_test.cpp
-	@echo "Compiling & simulating digitrec on amdpool ..."
+	@echo "Compiling & simulating aes on amdpool ..."
 	g++ ${CFLAGS} $^ -o aes -lrt
 	./aes
+
+sw: csim
+
+fpga: host.cpp
+	@echo "Compiling host program & running aes accelerator ..."
+	g++ ${CFLAGS} $^ -o aes-fpga
+	./aes-fpga
 
 bitstream: 
 	@echo "Synthesizing aes and creating bitstream on amdpool ..."
@@ -27,5 +34,6 @@ bitstream:
 	./run_bitstream.sh
 
 clean:
+	rm -rf aes-fpga
 	rm -rf aes *.dat *.prj *.log
 	rm -rf zedboard_project* xillydemo.bit

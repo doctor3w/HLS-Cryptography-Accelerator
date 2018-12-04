@@ -196,8 +196,6 @@ void dut(
   int i, j, bi;
   bit32_t read;
 
-  //#pragma HLS array_partition complete variable=sbox
-
   aes_key_t key;
   roundkey_t w;
   bit128_t iv, iv_enc, buf;

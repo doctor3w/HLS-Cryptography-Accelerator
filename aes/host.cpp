@@ -1,11 +1,10 @@
 //=========================================================================
-// aes_test.cpp
+// host.cpp
 //=========================================================================
 // @brief: testbench for AES application
 
 #include <iostream>
 #include <fstream>
-#include <algorithm>
 #include "aes.h"
 #include "timer.h"
 
@@ -48,8 +47,14 @@ static void printBytes(uint8_t* x, int l) {
 
 int main(){
   // HLS streams for communicating with the cordic block
-  hls::stream<bit32_t> aes_in;
-  hls::stream<bit32_t> aes_out;
+  int fdr = open("/dev/xillybus_read_32", O_RDONLY);
+  int fdw = open("/dev/xillybus_write_32", O_WRONLY);
+
+  // Check that the channels are correctly opened
+  if ((fdr < 0) || (fdw < 0)) {
+    fprintf (stderr, "Failed to open Xillybus device channels\n");
+    exit(-1);
+  }
 
   char out[Nb * NUM_BLOCKS * 4];
   uint8_t in[Nb * NUM_BLOCKS * 4];
@@ -77,34 +82,35 @@ int main(){
 
   int i, j;
   
-  bit32_t write; 
+  bit32_t wr; 
   uint32_t* keyD = (uint32_t*)key;
   for (i = 0; i < Nk; i++) {
-    write = keyD[i];
-    aes_in.write( write );
-  }
-  
+    wr = keyD[i];
+    write(fdw, (void*)&wr, sizeof(wr));
+  } 
+
   uint32_t* ivD = (uint32_t*)iv;
   for (i = 0; i < Nb; i++) {
-    write = ivD[i];
-    aes_in.write( write );
+    wr = ivD[i];
+    write(fdw, (void*)&wr, sizeof(wr));
   }
 
   uint32_t* inD = (uint32_t*)in;
   for (i = 0; i < Nb * NUM_BLOCKS; i++) {
-    write = inD[i];
-    aes_in.write( write );
+    wr = inD[i];
+    write(fdw, (void*)&wr, sizeof(wr));
   }
-
+  
   dut(aes_in, aes_out);
 
-  bit32_t read;
+  bit32_t rd;
+  int nbytes;
   for (i = 0; i < Nb * NUM_BLOCKS; i++) {
-    read = aes_out.read();
-    out[i*4 + 0] = read.range(7, 0);
-    out[i*4 + 1] = read.range(15, 8);
-    out[i*4 + 2] = read.range(23, 16);
-    out[i*4 + 3] = read.range(31, 24);
+    nbytes = read(fdr, (void*)&rd, sizeof(rd));
+    out[i*4 + 0] = rd.range(7, 0);
+    out[i*4 + 1] = rd.range(15, 8);
+    out[i*4 + 2] = rd.range(23, 16);
+    out[i*4 + 3] = rd.range(31, 24);
   }
 
   if (0 == memcmp((char*)outCorrect, (char*)out, BLOCKLEN * NUM_BLOCKS)) {
