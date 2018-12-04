@@ -21,7 +21,10 @@ csim: aes.cpp aes_test.cpp
 	g++ ${CFLAGS} $^ -o aes -lrt
 	./aes
 
-sw: csim
+sw: aes-sw.c test-sw.c
+	@echo "Compiling & executing aes software program on ARM ..."
+	g++ ${CFLAGS} $^ -o aes-arm -lrt
+	./aes-arm
 
 fpga: host.cpp
 	@echo "Compiling host program & running aes accelerator ..."
@@ -32,6 +35,9 @@ bitstream:
 	@echo "Synthesizing aes and creating bitstream on amdpool ..."
 	vivado_hls -f run_aes.tcl
 	./run_bitstream.sh
+
+clean-sw:
+	rm -rf aes-arm
 
 clean:
 	rm -rf aes-fpga

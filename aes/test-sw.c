@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "aes.h"
+#include "aes-sw.h"
 #include "timer.h"
 
-static void readBytes(char* fn, uint8_t* out, int n) {
+static void readBytes(const char* fn, uint8_t* out, int n) {
   FILE* in;
   in = fopen(fn, "r");
   if (in == NULL) {
@@ -24,16 +24,15 @@ static void readBytes(char* fn, uint8_t* out, int n) {
 
 static void test_xcrypt_ctr() {
 
-  char out[Nb * NUM_BLOCKS * 4];
-  uint8_t in[Nb * NUM_BLOCKS * 4];
-  uint8_t outCorrect[Nb * NUM_BLOCKS * 4];
+  uint8_t out[NUM_BLOCKS * 16];
+  uint8_t in[NUM_BLOCKS * 16];
 
   char correct = 0;
 
   Timer timer("aes encr");
   timer.start();
 
-#if defined(AES_256) && AES_256 == 1
+#if defined(AES256) && AES256 == 1
 
   uint8_t key[32] = {
     0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe,
@@ -43,7 +42,7 @@ static void test_xcrypt_ctr() {
   };
   const char* fn = "./data/aes256_out";
 
-#elif defined(AES_192) && AES_192 == 1
+#elif defined(AES192) && AES192 == 1
 
   uint8_t key[24] = {
     0x8e, 0x73, 0xb0, 0xf7, 0xda, 0x0e, 0x64, 0x52,
@@ -52,7 +51,7 @@ static void test_xcrypt_ctr() {
   };
   const char* fn = "./data/aes192_out";
 
-#elif defined(AES_128) && AES_128 == 1
+#elif defined(AES128) && AES128 == 1
 
   uint8_t key[16] = {
     0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
@@ -68,31 +67,31 @@ static void test_xcrypt_ctr() {
   };
 
   // Read in data
-  readBytes("./data/8000bytes", in, Nb * NUM_BLOCKS * 4);
-  readBytes(fn, outCorrect, Nb * NUM_BLOCKS * 4);
+  readBytes("./data/8000bytes", in, NUM_BLOCKS * 16);
+  readBytes(fn, out, NUM_BLOCKS * 16);
 
   // Do computation
   struct AES_ctx ctx;
   AES_init_ctx_iv(&ctx, key, iv);
-  AES_CTR_xcrypt_buffer(&ctx, in, Nbytes);
+  AES_CTR_xcrypt_buffer(&ctx, in, NUM_BLOCKS * 16);
 
-  if (0 == memcmp((char*) out, (char*) in, Nbytes)) {
+  if (0 == memcmp((char*) out, (char*) in, NUM_BLOCKS * 16)) {
     correct = 1;
   }
 
   timer.stop();
 
   // Calculate accuracy
-  std::cout << "Success: " << (correct ? "true" : "false") << std::endl;
+  printf("Success: %s\n", (correct ? "true" : "false"));
 }
 
 int main(void) {
-#if defined(AES256)
+#if defined(AES256) && AES256 == 1
   printf("\nTesting AES256\n\n");
-#elif defined(AES192)
+#elif defined(AES192) && AES192 == 1
   printf("\nTesting AES192\n\n");
-#elif defined(AES128)
-  printf("\nTesting AES128\n\n");
+#elif defined(AES128) && AES128 == 1
+  printf("Testing AES128\n");
 #else
   printf("You need to specify a symbol between AES128, AES192 or AES256. Exiting");
   return -1;
