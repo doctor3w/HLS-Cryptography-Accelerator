@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include "aes.h"
-#include "timer.h"
+#include "timer-fpga.h"
 
 using namespace std;
 
