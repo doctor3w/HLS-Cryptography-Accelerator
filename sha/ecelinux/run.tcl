@@ -36,6 +36,9 @@ set_directive_unroll -factor 8 memset_u8/LOOP
 set_directive_unroll SHA512Hasher::digest/LOOP_U64
 set_directive_unroll SHA512Hasher::byte_digest/LOOP_DIGEST
 
+# We do not want update to be inlined in calc
+set_directive_inline -off SHA512Hasher::update
+
 set_directive_array_partition SHA512Hasher::hashBlock W -type complete
 set_directive_pipeline SHA512Hasher::hashBlock/LOOP16
 set_directive_pipeline SHA512Hasher::hashBlock/LOOP64
