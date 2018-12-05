@@ -3,10 +3,34 @@
 //=========================================================================
 // @brief: testbench for AES application
 
-#include <iostream>
-#include <fstream>
-#include "aes.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <math.h>
+#include <assert.h>
+#include "typedefs.h"
 #include "timer-fpga.h"
+
+#define AES_128 1
+#define AES_192 0
+#define AES_256 0
+
+#ifndef NUM_BLOCKS
+#define NUM_BLOCKS 500
+#endif
+
+#define BLOCKLEN 16 // 16 bytes = 128 bits
+#define Nb 4
+
+#if defined(AES_256) && (AES_256 == 1)
+  #define Nk 8
+#elif defined(AES_192) && (AES_192 == 1)
+  #define Nk 6
+#else
+  #define Nk 4
+#endif
 
 using namespace std;
 
@@ -101,8 +125,6 @@ int main(){
     write(fdw, (void*)&wr, sizeof(wr));
   }
   
-  dut(aes_in, aes_out);
-
   bit32_t rd;
   int nbytes;
   for (i = 0; i < Nb * NUM_BLOCKS; i++) {
