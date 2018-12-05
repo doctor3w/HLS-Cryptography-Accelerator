@@ -22,8 +22,8 @@ static const char b64t[65] =
 static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
                                       int slen, int pwlen,
                                       const SHA512ByteHash &A,
-                                      const uint8_t DS[SHA512Hasher::HASH_SIZE],
-                                      const uint8_t DP[SHA512Hasher::HASH_SIZE],
+                                      const SHA512ByteHash &DS,
+                                      const SHA512ByteHash &DP,
                                       int nrounds=5000) {
   SHA512ByteHash C = A;
 
@@ -31,21 +31,21 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
     hasher.reset();
 
     if (i % 2 == 1) {
-      hasher.update(DP, pwlen);
+      hasher.update(DP.hash, pwlen);
     } else {
       hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
 
     if (i % 3 != 0) {
-      hasher.update(DS, slen);
+      hasher.update(DS.hash, slen);
     }
 
     if (i % 7 != 0) {
-      hasher.update(DP, pwlen);
+      hasher.update(DP.hash, pwlen);
     }
 
     if (i % 2 == 0) {
-      hasher.update(DP, pwlen);
+      hasher.update(DP.hash, pwlen);
     } else {
       hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
@@ -105,7 +105,7 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
 
   // Note P is the first N bytes of DP
   // We reuse A for C
-  A = runIters(hasher, slen, pwlen, A, DS.hash, DP.hash, nrounds);
+  A = runIters(hasher, slen, pwlen, A, DS, DP, nrounds);
 
   // TODO: unroll this
   for (int i=0; i < 21; i++) {
