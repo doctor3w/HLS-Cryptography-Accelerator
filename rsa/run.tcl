@@ -12,6 +12,6 @@ create_clock -period 8.5
 
 csim_design
 csynth_design
-# cosim_design
+cosim_design
 
 quit
