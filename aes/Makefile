@@ -11,8 +11,10 @@
 # Extract Vivado HLS include path
 VHLS_PATH := $(dir $(shell which vivado_hls))/..
 VHLS_INC ?= ${VHLS_PATH}/include
+INC_PATH=/usr/include/vivado_hls/2015.2
 
 CFLAGS = -g -I${VHLS_INC} 
+FCFLAGS = -g -I${INC_PATH} -lrt
 
 all: csim
 
@@ -28,7 +30,7 @@ sw: aes-sw.c test-sw.c
 
 fpga: host.cpp
 	@echo "Compiling host program & running aes accelerator ..."
-	g++ ${CFLAGS} $^ -o aes-fpga
+	g++ ${FCFLAGS} $^ -o aes-fpga
 	./aes-fpga
 
 bitstream: 
