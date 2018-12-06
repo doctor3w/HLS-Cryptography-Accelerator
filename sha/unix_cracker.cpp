@@ -20,7 +20,9 @@ static const char b64t[65] =
 
 static void update_hack(SHA512Hasher &hasher, const uint8_t *buf, uint8_t len) {
   #pragma HLS inline off
-  hasher.update(buf, len);
+  uint8_t stupid_vivado[SHA512Hasher::BLOCK_SIZE];
+  memcpy_u8(stupid_vivado, buf, len);
+  hasher.update(stupid_vivado, len);
 }
 
 static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
