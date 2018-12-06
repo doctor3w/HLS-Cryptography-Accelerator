@@ -29,8 +29,6 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
 
   // There are 3 cases here: i % 7 | i % 3 | i%2
   // Case 000: SHA512Hasher::HASH_SIZE
-#ifdef PRE_INIT
-
   const uint8_t N = SHA512Hasher::HASH_SIZE;
   const int N000 = N + MAX_PWD_LEN;
   const int N001 = MAX_PWD_LEN + N;
@@ -160,35 +158,29 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
         break;
 
     }
+
+    // if (i % 2 == 1) {
+    //   hasher.update(DP.hash, pwlen);
+    // } else {
+    //   hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
+    // }
+    //
+    // if (i % 3 != 0) {
+    //   hasher.update(DS.hash, slen);
+    // }
+    //
+    // if (i % 7 != 0) {
+    //   hasher.update(DP.hash, pwlen);
+    // }
+    //
+    // if (i % 2 == 0) {
+    //   hasher.update(DP.hash, pwlen);
+    // } else {
+    //   hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
+    // }
+    //
+    // C = hasher.byte_digest();
   }
-#else
-  for (int i=0; i < nrounds; i++) {
-    hasher.reset();
-    
-    if (i % 2 == 1) {
-      hasher.update(DP.hash, pwlen);
-    } else {
-      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
-    }
-
-    if (i % 3 != 0) {
-      hasher.update(DS.hash, slen);
-    }
-
-    if (i % 7 != 0) {
-      hasher.update(DP.hash, pwlen);
-    }
-
-    if (i % 2 == 0) {
-      hasher.update(DP.hash, pwlen);
-    } else {
-      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
-    }
-
-    C = hasher.byte_digest();
-  }
-#endif
-
   return C;
 
 }
