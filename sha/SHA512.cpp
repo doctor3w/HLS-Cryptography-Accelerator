@@ -97,7 +97,7 @@ LOOP_U64:
 
 void SHA512Hasher::buf_cpy(uint8_t offset, const uint8_t *src, uint8_t len) {
   for (int i=0; i < len; i++) {
-    pragma HLS unroll factor=8
+    #pragma HLS unroll factor=8
     buf[offset + i] = src[i];
   }
 }

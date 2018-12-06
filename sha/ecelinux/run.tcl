@@ -25,7 +25,7 @@ open_solution "solution1"
 set_part {xc7z020clg484-1}
 
 # Target clock period is 10ns
-create_clock -period 9
+create_clock -period 10
 
 ### You can insert your own directives here ###
 # Partition the array so 64_bit accesses are fast
@@ -33,10 +33,9 @@ set_directive_array_partition SHA512Hasher::SHA512Hasher buf -type cyclic -facto
 
 set_directive_unroll read64clear/LOOP
 #set_directive_unroll -factor 8 memcpy_u8/LOOP
-set_directive_inline -off memcpy_u8
-set_directive_unroll -factor 8 memset_u8/LOOP
+#set_directive_unroll -factor 8 memset_u8/LOOP
 set_directive_unroll SHA512Hasher::digest/LOOP_U64
-set_directive_unroll SHA512Hasher::byte_digest/LOOP_DIGEST
+#set_directive_unroll SHA512Hasher::byte_digest/LOOP_DIGEST
 
 # We do not want update to be inlined in calc
 set_directive_inline -off SHA512Hasher::update
