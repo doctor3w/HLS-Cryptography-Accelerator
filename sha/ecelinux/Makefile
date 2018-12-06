@@ -16,10 +16,10 @@ CFLAGS = -g -I${VHLS_INC}
 
 all: csim
 
-csim: sha256.cpp constants.cpp sha256_test.cpp
+csim: SHA512.cpp unix_cracker.cpp unix_cracker_test.cpp helpers.cpp main.cpp
 	@echo "Compiling & simulating cnn on amdpool ..."
-	g++ ${CFLAGS} $^ -o sha256 -lrt
-	./sha256
+	g++ ${CFLAGS} $^ -o sha512 -lrt
+	./sha512
 
 bitstream: 
 	@echo "Synthesizing cnn and creating bitstream on amdpool ..."
