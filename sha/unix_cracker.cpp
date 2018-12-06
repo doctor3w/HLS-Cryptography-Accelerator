@@ -18,6 +18,10 @@ static const uint8_t P[] = {
 static const char b64t[65] =
 "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
+static void update_hack(SHA512Hasher &hasher, const uint8_t *buf, uint8_t len) {
+  #pragma HLS inline off
+  hasher.update(buf, len);
+}
 
 static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
                                       int slen, int pwlen,
@@ -61,25 +65,26 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
   assert(slen <= 64);
   // Compute B
   SHA512Hasher hasher;
-  hasher.update(pwd, pwlen);
-  hasher.update(salt, slen);
-  hasher.update(pwd, pwlen);
+  update_hack(hasher, pwd, pwlen);
+  update_hack(hasher, salt, slen);
+  update_hack(hasher, pwd, pwlen);
   SHA512ByteHash B = hasher.byte_digest();
 
   hasher.reset();
 
   // Compute A
-  hasher.update(pwd, pwlen);
-  hasher.update(salt, slen);
+  update_hack(hasher, pwd, pwlen);
+  update_hack(hasher, salt, slen);
+  update_hack(hasher, B.hash, pwlen);
   hasher.update(B.hash, pwlen);
 
   uint8_t curr = pwlen;
   for (int i=0; i < 8; i++) {
     if (curr) {
       if (curr & 1) {
-        hasher.update(B.hash, sizeof(B.hash));
+        update_hack(hasher, B.hash, sizeof(B.hash));
       } else {
-        hasher.update(pwd, pwlen);
+        update_hack(hasher, pwd, pwlen);
       }
     }
     curr >>= 1;
@@ -90,7 +95,7 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
 
   // Compute DP
   for (int i=0; i < pwlen; i++) {
-    hasher.update(pwd, pwlen);
+    update_hack(hasher, pwd, pwlen);
   }
   SHA512ByteHash DP = hasher.byte_digest();
 
@@ -98,7 +103,7 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
 
   // Compute DS
   for (int i=0; i < 16 + A.hash[0]; i++) {
-    hasher.update(salt, slen);
+    update_hack(hasher, salt, slen);
   }
   SHA512ByteHash DS = hasher.byte_digest();
 
