@@ -77,22 +77,33 @@ LOOP_U64:
   return state;
 }
 
-
-
-SHA512ByteHash SHA512Hasher::byte_digest() {
+void SHA512ByteHash SHA512Hasher::byte_digest(uint8_t buf[64]) {
   digest();
-  SHA512ByteHash ret;
 LOOP_DIGEST:
   for (int i=0; i < 8; i++) {
     uint64_t curr = state.hash[i];
 LOOP_U64:
     for (int j=0; j < sizeof(uint64_t); j++) {
-      ret.hash[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
+      buf[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
       curr >>= 8;
     }
   }
-  return ret;
 }
+
+// SHA512ByteHash SHA512Hasher::byte_digest() {
+//   digest();
+//   SHA512ByteHash ret;
+// LOOP_DIGEST:
+//   for (int i=0; i < 8; i++) {
+//     uint64_t curr = state.hash[i];
+// LOOP_U64:
+//     for (int j=0; j < sizeof(uint64_t); j++) {
+//       ret.hash[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
+//       curr >>= 8;
+//     }
+//   }
+//   return ret;
+// }
 
 
 void SHA512Hasher::buf_cpy(uint8_t offset, const uint8_t *src, uint8_t len) {
