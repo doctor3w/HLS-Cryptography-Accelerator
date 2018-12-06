@@ -6,6 +6,18 @@
 
 #ifdef __ORDER_LITTLE_ENDIAN__
 #include <endian.h>
+SHA512Hash convertEndian(const SHA512Hash in) {
+  SHA512Hash ret;
+  for (int i=0; i < SHA512Hasher::HASH_SIZE/sizeof(uint64_t); i++) {
+    ret.hash64[i] = htobe64(in.hash64[i]);
+  }
+  return ret;
+}
+
+#define FIX_ENDIAN(X) (convertEndian(X))
+#else
+
+#define FIX_ENDIAN(X) (X)
 #endif
 
 static const uint8_t P[] = {
@@ -60,7 +72,7 @@ static inline SHA512Hash runIters(SHA512Hasher &hasher,
       hasher.update(C.hash8, SHA512Hasher::HASH_SIZE);
     }
 
-    C = hasher.digest();
+    C = FIX_ENDIAN(hasher.digest());
   }
   return C;
 
@@ -74,7 +86,7 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
   update_hack(hasher, pwd, pwlen);
   update_hack(hasher, salt, slen);
   update_hack(hasher, pwd, pwlen);
-  SHA512Hash B = hasher.digest();
+  SHA512Hash B = FIX_ENDIAN(hasher.digest());
 
   hasher.reset();
 
@@ -94,7 +106,7 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
     }
     curr >>= 1;
   }
-  SHA512Hash A = hasher.digest();
+  SHA512Hash A = FIX_ENDIAN(hasher.digest());
 
   hasher.reset();
 
@@ -102,7 +114,7 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
   for (int i=0; i < pwlen; i++) {
     update_hack(hasher, pwd, pwlen);
   }
-  SHA512Hash DP = hasher.digest();
+  SHA512Hash DP = FIX_ENDIAN(hasher.digest());
 
   hasher.reset();
 
@@ -110,22 +122,12 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
   for (int i=0; i < 16 + A.hash8[0]; i++) {
     update_hack(hasher, salt, slen);
   }
-  SHA512Hash DS = hasher.digest();
+  SHA512Hash DS = FIX_ENDIAN(hasher.digest());
 
 
   // Note P is the first N bytes of DP
   // We reuse A for C
   A = runIters(hasher, slen, pwlen, A, DS, DP, nrounds);
-
-  // Unbreak x86
-#ifdef __ORDER_LITTLE_ENDIAN__
-  SHA512Hash tmp = runIters(hasher, slen, pwlen, A, DS, DP, nrounds);
-  for (int i=0; i < SHA512Hasher::HASH_SIZE/sizeof(uint64_t); i++) {
-    A.hash64[i] = htobe64(tmp.hash64[i]);
-  }
-#else
-  A = runIters(hasher, slen, pwlen, A, DS, DP, nrounds);
-#endif
 
   // TODO: unroll this
   for (int i=0; i < 21; i++) {
