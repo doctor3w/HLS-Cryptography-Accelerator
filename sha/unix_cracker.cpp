@@ -76,7 +76,6 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
   update_hack(hasher, pwd, pwlen);
   update_hack(hasher, salt, slen);
   update_hack(hasher, B.hash, pwlen);
-  hasher.update(B.hash, pwlen);
 
   uint8_t curr = pwlen;
   for (int i=0; i < 8; i++) {
