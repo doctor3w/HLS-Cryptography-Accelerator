@@ -50,7 +50,6 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
   uint8_t c110[SHA512_NBYTES(N110)] = {};
   uint8_t c111[SHA512_NBYTES(N111)] = {};
 
-
   const uint8_t M000 = N + pwlen;
   const uint8_t M001 = pwlen + N;
   const uint8_t M010 = N + 2*pwlen;
@@ -114,7 +113,7 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
     uint8_t b1 = (i % 3) != 0  ? 1 : 0;
     uint8_t b2 = (i % 7) != 0  ? 1 : 0;
     hasher.reset();
-
+    printf("Iter %x %x\n", C.hash[0], C.hash[1]);
     switch (b2 << 2 | b1 << 1 | b0) {
       case 0b000:
         memcpy_u8(c000, C.hash, N);
@@ -164,7 +163,7 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
 #else
   for (int i=0; i < nrounds; i++) {
     hasher.reset();
-    
+    printf("%x %x\n", C.hash[0], C.hash[1]);
     if (i % 2 == 1) {
       hasher.update(DP.hash, pwlen);
     } else {

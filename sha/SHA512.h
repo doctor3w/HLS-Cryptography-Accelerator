@@ -6,7 +6,7 @@
 #include <string.h>
 #include "helpers.h"
 
-#define SHA512_NBLOCKS(N) (((N) + 1 + 2*sizeof(uint64_t))/(SHA512Hasher::BLOCK_SIZE))
+#define SHA512_NBLOCKS(N) (((N) + 1 + 2*sizeof(uint64_t) + SHA512Hasher::BLOCK_SIZE)/(SHA512Hasher::BLOCK_SIZE))
 
 #define SHA512_NBYTES(N) (SHA512_NBLOCKS(N) * SHA512Hasher::BLOCK_SIZE)
 
