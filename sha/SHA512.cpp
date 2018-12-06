@@ -63,7 +63,7 @@ SHA512Hash SHA512Hasher::digest() {
   buf[bsize++] = 0x80;
   // zero out buffer
   if (BLOCK_SIZE - bsize < 2*sizeof(uint64_t)) { // No room
-    state = hashBlock(state, buf); //update
+    hashBlock(); //update
   }
   uint64_t size = total*8;
   // TODO unroll this
@@ -72,30 +72,9 @@ LOOP_U64:
     buf[(BLOCK_SIZE - 1) - i] = (size & 0xff);
     size >>= 8;
   }
-  state = hashBlock(state, buf); //update
+  hashBlock(); //update
 
   return state;
-}
-
-
-SHA512ByteHash SHA512Hasher::hashBlocks(uint8_t *msg, uint8_t nblocks) {
-  SHA512Hash tmp = SHA512_INIT;
-  for (uint8_t i=0; i < nblocks; i++) {
-    tmp = hashBlock(tmp, msg + SHA512Hasher::BLOCK_SIZE*i, false);
-  }
-
-  // TODO we can avoid this copy on big endian
-  SHA512ByteHash ret;
-  for (int i=0; i < 8; i++) {
-    uint64_t curr = tmp.hash[i];
-LOOP_U64:
-    for (int j=0; j < sizeof(uint64_t); j++) {
-      ret.hash[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
-      curr >>= 8;
-    }
-  }
-
-  return ret;
 }
 
 
@@ -124,7 +103,7 @@ void SHA512Hasher::update(const void *msgp, uint8_t len) {
   memcpy_u8(buf+bsize, msg, tocpy);
 
   if (tocpy < len || len == remain) { // Not enough room or full
-    state = hashBlock(state, buf);
+    hashBlock();
     bsize = len - tocpy;
     memcpy_u8(buf, msg + tocpy, bsize);
   } else { // Enough room
@@ -135,22 +114,22 @@ void SHA512Hasher::update(const void *msgp, uint8_t len) {
 }
 
 
-SHA512Hash SHA512Hasher::hashBlock(SHA512Hash start, uint8_t *msg, bool clear) {
-  uint64_t a = start.hash[0];
-  uint64_t b = start.hash[1];
-  uint64_t c = start.hash[2];
-  uint64_t d = start.hash[3];
-  uint64_t e = start.hash[4];
-  uint64_t f = start.hash[5];
-  uint64_t g = start.hash[6];
-  uint64_t h = start.hash[7];
+void SHA512Hasher::hashBlock() {
+  uint64_t a = state.hash[0];
+  uint64_t b = state.hash[1];
+  uint64_t c = state.hash[2];
+  uint64_t d = state.hash[3];
+  uint64_t e = state.hash[4];
+  uint64_t f = state.hash[5];
+  uint64_t g = state.hash[6];
+  uint64_t h = state.hash[7];
 
   uint64_t W[16];
 
   // Do first 16 rounds
 LOOP16:
   for (int j=0; j < 16; j++) {
-    uint64_t wcurr = read64clear(msg, sizeof(uint64_t)*j, clear);
+    uint64_t wcurr = read64clear(buf, sizeof(uint64_t)*j);
     W[j] = wcurr;
     uint64_t T1 = h + CSigma1(e) + Ch(e, f, g) + K[j] + wcurr;
     uint64_t T2 = CSigma0(a) + Maj(a, b, c);
@@ -187,14 +166,12 @@ LOOP_SHIFT:
     a = T1 + T2;
   }
 
-  start.hash[0] += a;
-  start.hash[1] += b;
-  start.hash[2] += c;
-  start.hash[3] += d;
-  start.hash[4] += e;
-  start.hash[5] += f;
-  start.hash[6] += g;
-  start.hash[7] += h;
-
-  return start;
+  state.hash[0] += a;
+  state.hash[1] += b;
+  state.hash[2] += c;
+  state.hash[3] += d;
+  state.hash[4] += e;
+  state.hash[5] += f;
+  state.hash[6] += g;
+  state.hash[7] += h;
 }

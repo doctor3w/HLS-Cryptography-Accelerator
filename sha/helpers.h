@@ -24,14 +24,14 @@ LOOP:
 }
 
 // Unroll completely
-static inline uint64_t read64clear(uint8_t *arr, int sidx, bool clear) {
+static inline uint64_t read64clear(uint8_t *arr, int sidx) {
   uint64_t ret = 0;
   // TODO: unroll this
 LOOP:
   for (int i=0; i < sizeof(uint64_t); i++) {
     ret <<= 8;
     ret |= arr[sidx + i];
-    if (clear) arr[sidx + i] = 0; // Clear
+    arr[sidx + i] = 0; // Clear
   }
   return ret;
 }
