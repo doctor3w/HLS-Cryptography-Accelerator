@@ -40,23 +40,23 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
     hasher.reset();
 
     if (twos) {
-      hasher.update(DP.hash8, pwlen);
+      hasher.update(DP.hash, pwlen);
     } else {
-      hasher.update(C.hash8, SHA512Hasher::HASH_SIZE);
+      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
 
     if (threes) {
-      hasher.update(DS.hash8, slen);
+      hasher.update(DS.hash, slen);
     }
 
     if (sevens) {
-      hasher.update(DP.hash8, pwlen);
+      hasher.update(DP.hash, pwlen);
     }
 
     if (twos == 0) {
-      hasher.update(DP.hash8, pwlen);
+      hasher.update(DP.hash, pwlen);
     } else {
-      hasher.update(C.hash8, SHA512Hasher::HASH_SIZE);
+      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
 
     C = FIX_ENDIAN(hasher.digest());
