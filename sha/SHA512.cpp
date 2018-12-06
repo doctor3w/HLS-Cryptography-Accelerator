@@ -95,16 +95,24 @@ LOOP_U64:
 }
 
 
+void SHA512Hasher::buf_cpy(uint8_t offset, const uint8_t *src, uint8_t len) {
+  for (int i=0; i < len; i++) {
+    pragma HLS unroll factor=8
+    buf[offset + i] = src[i];
+  }
+}
+
+
 void SHA512Hasher::update(const uint8_t *msg, uint8_t len) {
   assert (len <= BLOCK_SIZE);
   uint8_t remain = BLOCK_SIZE - bsize;
   uint8_t tocpy = MIN(remain, len);
-  memcpy_u8(buf+bsize, msg, tocpy);
+  buf_cpy(bsize, msg, tocpy);
 
   if (tocpy < len || len == remain) { // Not enough room or full
     hashBlock();
     bsize = len - tocpy;
-    memcpy_u8(buf, msg + tocpy, bsize);
+    buf_cpy(0, msg + tocpy, bsize);
   } else { // Enough room
     bsize += len;
   }

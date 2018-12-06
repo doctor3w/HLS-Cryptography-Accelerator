@@ -37,7 +37,7 @@ private:
   uint8_t buf[BLOCK_SIZE]; // TODO: This should be partitioned in chunks of 8
   uint8_t bsize;
   uint64_t total;
-
+  void buf_cpy(uint8_t offset, uint8_t *src);
   void hashBlock();
   // Rotate right n
   static inline uint64_t Sn(uint64_t x, int n) { return (x >> n) | (x << (64 - n)); }
