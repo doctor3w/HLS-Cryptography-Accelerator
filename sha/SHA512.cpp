@@ -78,21 +78,21 @@ LOOP_U64:
 }
 
 
-
-SHA512ByteHash SHA512Hasher::byte_digest() {
-  digest();
-  SHA512ByteHash ret;
-LOOP_DIGEST:
-  for (int i=0; i < 8; i++) {
-    uint64_t curr = state.hash[i];
-LOOP_U64:
-    for (int j=0; j < sizeof(uint64_t); j++) {
-      ret.hash[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
-      curr >>= 8;
-    }
-  }
-  return ret;
-}
+// 
+// SHA512ByteHash SHA512Hasher::byte_digest() {
+//   digest();
+//   SHA512ByteHash ret;
+// LOOP_DIGEST:
+//   for (int i=0; i < 8; i++) {
+//     uint64_t curr = state.hash64[i];
+// LOOP_U64:
+//     for (int j=0; j < sizeof(uint64_t); j++) {
+//       ret.hash64[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
+//       curr >>= 8;
+//     }
+//   }
+//   return ret;
+// }
 
 
 void SHA512Hasher::buf_cpy(uint8_t offset, const uint8_t *src, uint8_t len) {
@@ -122,14 +122,14 @@ void SHA512Hasher::update(const uint8_t *msg, uint8_t len) {
 
 
 void SHA512Hasher::hashBlock() {
-  uint64_t a = state.hash[0];
-  uint64_t b = state.hash[1];
-  uint64_t c = state.hash[2];
-  uint64_t d = state.hash[3];
-  uint64_t e = state.hash[4];
-  uint64_t f = state.hash[5];
-  uint64_t g = state.hash[6];
-  uint64_t h = state.hash[7];
+  uint64_t a = state.hash64[0];
+  uint64_t b = state.hash64[1];
+  uint64_t c = state.hash64[2];
+  uint64_t d = state.hash64[3];
+  uint64_t e = state.hash64[4];
+  uint64_t f = state.hash64[5];
+  uint64_t g = state.hash64[6];
+  uint64_t h = state.hash64[7];
 
   uint64_t W[16];
 
@@ -173,12 +173,12 @@ LOOP_SHIFT:
     a = T1 + T2;
   }
 
-  state.hash[0] += a;
-  state.hash[1] += b;
-  state.hash[2] += c;
-  state.hash[3] += d;
-  state.hash[4] += e;
-  state.hash[5] += f;
-  state.hash[6] += g;
-  state.hash[7] += h;
+  state.hash64[0] += a;
+  state.hash64[1] += b;
+  state.hash64[2] += c;
+  state.hash64[3] += d;
+  state.hash64[4] += e;
+  state.hash64[5] += f;
+  state.hash64[6] += g;
+  state.hash64[7] += h;
 }

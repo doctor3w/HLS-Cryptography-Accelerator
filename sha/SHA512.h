@@ -3,20 +3,11 @@
 
 #include <stdint.h>
 
-#include <string.h>
 #include "helpers.h"
 
-struct SHA512Hash {
-  uint64_t hash[8];
-
-  bool operator==(const SHA512Hash& rhs)
-  {
-      return !memcmp(hash, rhs.hash, sizeof(uint64_t[8]));
-  }
-};
-
-struct SHA512ByteHash {
-  uint8_t hash[64];
+union SHA512Hash {
+  uint64_t hash64[8];
+  uint8_t hash8[64];
 };
 
 
@@ -26,7 +17,7 @@ public:
   void reset();
   // len <= 128
   SHA512Hash digest();
-  SHA512ByteHash byte_digest();
+  //SHA512ByteHash byte_digest();
   void update(const uint8_t *msgp, uint8_t len);
 
   static const uint8_t HASH_SIZE = 64;
