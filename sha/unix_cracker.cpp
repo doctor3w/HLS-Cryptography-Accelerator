@@ -20,37 +20,166 @@ static const char b64t[65] =
 
 
 static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
-                                      int slen, int pwlen,
+                                      uint8_t slen, uint8_t pwlen,
                                       const SHA512ByteHash &A,
                                       const SHA512ByteHash &DS,
                                       const SHA512ByteHash &DP,
                                       int nrounds=5000) {
   SHA512ByteHash C = A;
 
+  // There are 3 cases here: i % 7 | i % 3 | i%2
+  // Case 000: SHA512Hasher::HASH_SIZE
+  const uint8_t N = SHA512Hasher::HASH_SIZE;
+  const int N000 = N + MAX_PWD_LEN;
+  const int N001 = MAX_PWD_LEN + N;
+  const int N010 = N + MAX_SALT_LEN + MAX_PWD_LEN;
+  const int N011 = MAX_PWD_LEN + MAX_SALT_LEN + N;
+  const int N100 = MAX_PWD_LEN + MAX_PWD_LEN;
+  const int N101 = MAX_PWD_LEN + MAX_PWD_LEN + N;
+  const int N110 = N + MAX_SALT_LEN + MAX_PWD_LEN + MAX_PWD_LEN;
+  const int N111 = MAX_PWD_LEN + MAX_SALT_LEN +  MAX_PWD_LEN + N;
+
+  uint8_t c000[SHA512_NBYTES(N000)] = {};
+  uint8_t c001[SHA512_NBYTES(N001)] = {};
+  uint8_t c010[SHA512_NBYTES(N010)] = {};
+  uint8_t c011[SHA512_NBYTES(N011)] = {};
+  uint8_t c100[SHA512_NBYTES(N100)] = {};
+  uint8_t c101[SHA512_NBYTES(N101)] = {};
+  uint8_t c110[SHA512_NBYTES(N110)] = {};
+  uint8_t c111[SHA512_NBYTES(N111)] = {};
+
+
+  const uint8_t M000 = N + pwlen;
+  const uint8_t M001 = pwlen + N;
+  const uint8_t M010 = N + 2*pwlen;
+  const uint8_t M011 = pwlen + slen + N;
+  const uint8_t M100 = 2*pwlen;
+  const uint8_t M101 = 2*pwlen + N;
+  const uint8_t M110 = N + slen + pwlen + pwlen;
+  const uint8_t M111 = pwlen + slen +  pwlen + N;
+
+  // Setup 000
+  memcpy_u8(c000 + N, DP.hash, pwlen);
+  c000[M000] = 0x80;
+  c000[N000 - 1] = 8*(M000);
+  c000[N000 - 2] = 8*(M000) >> 8;
+
+  // Setup 001
+  memcpy_u8(c001, DP.hash, pwlen);
+  c001[M001] = 0x80;
+  c001[N001 - 1] = 8*(M001);
+  c001[N001 - 2] = 8*(M001) >> 8;
+
+  // Setup 010
+  memcpy_u8(c010 + N, DS.hash, slen);
+  memcpy_u8(c010 + N + slen, DP.hash, pwlen);
+  c010[M010] = 0x80;
+  c010[N010 - 1] = 8*(M010);
+  c010[N010 - 2] = 8*(M010) >> 8;
+
+  // Setup 100
+  memcpy_u8(c100 + N, DP.hash, pwlen);
+  memcpy_u8(c100 + N + pwlen, DP.hash, pwlen);
+  c010[M100] = 0x80;
+  c010[N100 - 1] = 8*(M100);
+  c010[N100 - 2] = 8*(M100) >> 8;
+
+  // Setup 101
+  memcpy_u8(c101, DP.hash, pwlen);
+  memcpy_u8(c101 + pwlen, DP.hash, pwlen);
+  c010[M101] = 0x80;
+  c010[N101 - 1] = 8*(M101);
+  c010[N101 - 2] = 8*(M101) >> 8;
+
+  // Setup 110
+  memcpy_u8(c110 + N, DS.hash, slen);
+  memcpy_u8(c110 + N + slen, DP.hash, pwlen);
+  memcpy_u8(c110 + N + slen + pwlen, DP.hash, pwlen);
+  c010[M110] = 0x80;
+  c010[N110 - 1] = 8*(M110);
+  c010[N110 - 2] = 8*(M110) >> 8;
+
+  // Setup 111
+  memcpy_u8(c111, DP.hash, pwlen);
+  memcpy_u8(c111 + pwlen, DS.hash, slen);
+  memcpy_u8(c111 + pwlen + slen, DP.hash, pwlen);
+  c010[M111] = 0x80;
+  c010[N111 - 1] = 8*(M111);
+  c010[N111 - 2] = 8*(M111) >> 8;
+
   for (int i=0; i < nrounds; i++) {
+    uint8_t b0 = (i % 2) != 0 ? 1 : 0;
+    uint8_t b1 = (i % 3) != 0  ? 1 : 0;
+    uint8_t b2 = (i % 7) != 0  ? 1 : 0;
     hasher.reset();
 
-    if (i % 2 == 1) {
-      hasher.update(DP.hash, pwlen);
-    } else {
-      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
+    switch (b2 << 2 | b1 << 1 | b0) {
+      case 0b000:
+        memcpy_u8(c000, C.hash, N);
+        C = SHA512Hasher::hashBlocks(c000, SHA512_NBLOCKS(N000));
+        break;
+
+      case 0b001:
+        memcpy_u8(c001 + M001 - N, C.hash, N);
+        C = SHA512Hasher::hashBlocks(c001, SHA512_NBLOCKS(N001));
+        break;
+
+
+      case 0b010:
+        memcpy_u8(c010, C.hash, N);
+        C = SHA512Hasher::hashBlocks(c010, SHA512_NBLOCKS(N010));
+        break;
+
+      case 0b011:
+        memcpy_u8(c011 + M011 - N, C.hash, N);
+        C = SHA512Hasher::hashBlocks(c011, SHA512_NBLOCKS(N011));
+        break;
+
+
+      case 0b0100:
+        memcpy_u8(c100, C.hash, N);
+        C = SHA512Hasher::hashBlocks(c100, SHA512_NBLOCKS(N100));
+        break;
+
+      case 0b101:
+        memcpy_u8(c101 + M101 - N, C.hash, N);
+        C = SHA512Hasher::hashBlocks(c101, SHA512_NBLOCKS(N101));
+        break;
+
+
+      case 0b110:
+        memcpy_u8(c110, C.hash, N);
+        C = SHA512Hasher::hashBlocks(c110, SHA512_NBLOCKS(N110));
+        break;
+
+      case 0b111:
+        memcpy_u8(c111 + M111 - N, C.hash, N);
+        C = SHA512Hasher::hashBlocks(c111, SHA512_NBLOCKS(N111));
+        break;
+
     }
 
-    if (i % 3 != 0) {
-      hasher.update(DS.hash, slen);
-    }
-
-    if (i % 7 != 0) {
-      hasher.update(DP.hash, pwlen);
-    }
-
-    if (i % 2 == 0) {
-      hasher.update(DP.hash, pwlen);
-    } else {
-      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
-    }
-
-    C = hasher.byte_digest();
+    // if (i % 2 == 1) {
+    //   hasher.update(DP.hash, pwlen);
+    // } else {
+    //   hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
+    // }
+    //
+    // if (i % 3 != 0) {
+    //   hasher.update(DS.hash, slen);
+    // }
+    //
+    // if (i % 7 != 0) {
+    //   hasher.update(DP.hash, pwlen);
+    // }
+    //
+    // if (i % 2 == 0) {
+    //   hasher.update(DP.hash, pwlen);
+    // } else {
+    //   hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
+    // }
+    //
+    // C = hasher.byte_digest();
   }
   return C;
 
