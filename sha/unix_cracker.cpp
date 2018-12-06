@@ -19,6 +19,14 @@ static const char b64t[65] =
 "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 
+static void hash_update_hack(SHA512Hasher &hasher, uint64_t *arr, uint8_t len) {
+  #pragma HLS inline off
+  hasher.update(arr, len);
+}
+
+#pragma HLS inline
+
+
 static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
                                       int slen, int pwlen,
                                       const SHA512ByteHash &A,
@@ -61,25 +69,25 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
   assert(slen <= 64);
   // Compute B
   SHA512Hasher hasher;
-  hasher.update(pwd, pwlen);
-  hasher.update(salt, slen);
-  hasher.update(pwd, pwlen);
+  hash_update_hack(hasher, pwd, pwlen);
+  hash_update_hack(hasher, salt, slen);
+  hash_update_hack(hasher, pwd, pwlen);
   SHA512ByteHash B = hasher.byte_digest();
 
   hasher.reset();
 
   // Compute A
-  hasher.update(pwd, pwlen);
-  hasher.update(salt, slen);
-  hasher.update(B.hash, pwlen);
+  hash_update_hack(hasher, pwd, pwlen);
+  hash_update_hack(hasher, salt, slen);
+  hash_update_hack(hasher, B.hash, pwlen);
 
   uint8_t curr = pwlen;
   for (int i=0; i < 8; i++) {
     if (curr) {
       if (curr & 1) {
-        hasher.update(B.hash, sizeof(B.hash));
+        hash_update_hack(hasher, B.hash, sizeof(B.hash));
       } else {
-        hasher.update(pwd, pwlen);
+        hash_update_hack(hasher, pwd, pwlen);
       }
     }
     curr >>= 1;
@@ -90,7 +98,7 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
 
   // Compute DP
   for (int i=0; i < pwlen; i++) {
-    hasher.update(pwd, pwlen);
+    hash_update_hack(hasher, pwd, pwlen);
   }
   SHA512ByteHash DP = hasher.byte_digest();
 
@@ -98,10 +106,9 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
 
   // Compute DS
   for (int i=0; i < 16 + A.hash[0]; i++) {
-    hasher.update(salt, slen);
+    hash_update_hack(hasher, salt, slen);
   }
   SHA512ByteHash DS = hasher.byte_digest();
-
 
   // Note P is the first N bytes of DP
   // We reuse A for C
