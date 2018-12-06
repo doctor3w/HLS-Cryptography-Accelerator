@@ -4,22 +4,6 @@
 #include "SHA512.h"
 #include "unix_cracker.h"
 
-#ifdef __ORDER_LITTLE_ENDIAN__
-#include <endian.h>
-SHA512Hash convertEndian(const SHA512Hash in) {
-  SHA512Hash ret;
-  for (int i=0; i < SHA512Hasher::HASH_SIZE/sizeof(uint64_t); i++) {
-    ret.hash64[i] = htobe64(in.hash64[i]);
-  }
-  return ret;
-}
-
-#define FIX_ENDIAN(X) (convertEndian(X))
-#else
-
-#define FIX_ENDIAN(X) (X)
-#endif
-
 static const uint8_t P[] = {
   42, 21,  0,  1, 43, 22, 23,  2, 44,
   45, 24,  3,  4, 46, 25, 26,  5, 47,
@@ -41,45 +25,38 @@ static void update_hack(SHA512Hasher &hasher, const uint8_t *buf, uint8_t len) {
   hasher.update(stupid_vivado, len);
 }
 
-static inline SHA512Hash runIters(SHA512Hasher &hasher,
-                                  int slen, int pwlen,
-                                  const SHA512Hash &A,
-                                  const SHA512Hash &DS,
-                                  const SHA512Hash &DP,
-                                  int nrounds=5000) {
-  SHA512Hash C = A;
+static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
+                                      int slen, int pwlen,
+                                      const SHA512ByteHash &A,
+                                      const SHA512ByteHash &DS,
+                                      const SHA512ByteHash &DP,
+                                      int nrounds=5000) {
+  SHA512ByteHash C = A;
 
-  uint8_t twos = 0;
-  uint8_t threes = 0;
-  uint8_t sevens = 0;
   for (int i=0; i < nrounds; i++) {
     hasher.reset();
 
-    if (twos) {
-      hasher.update(DP.hash8, pwlen);
+    if (i % 2 == 1) {
+      hasher.update(DP.hash, pwlen);
     } else {
-      hasher.update(C.hash8, SHA512Hasher::HASH_SIZE);
+      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
 
-    if (threes) {
-      hasher.update(DS.hash8, slen);
+    if (i % 3 != 0) {
+      hasher.update(DS.hash, slen);
     }
 
-    if (sevens) {
-      hasher.update(DP.hash8, pwlen);
+    if (i % 7 != 0) {
+      hasher.update(DP.hash, pwlen);
     }
 
-    if (twos == 0) {
-      hasher.update(DP.hash8, pwlen);
+    if (i % 2 == 0) {
+      hasher.update(DP.hash, pwlen);
     } else {
-      hasher.update(C.hash8, SHA512Hasher::HASH_SIZE);
+      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
 
-    C = FIX_ENDIAN(hasher.digest());
-
-    twos = twos ? 0 : 1;
-    threes = threes == 2 ? 0 : threes + 1;
-    threes = sevens == 6 ? 0 : sevens + 1; 
+    C = hasher.byte_digest();
   }
   return C;
 
@@ -93,27 +70,27 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
   update_hack(hasher, pwd, pwlen);
   update_hack(hasher, salt, slen);
   update_hack(hasher, pwd, pwlen);
-  SHA512Hash B = FIX_ENDIAN(hasher.digest());
+  SHA512ByteHash B = hasher.byte_digest();
 
   hasher.reset();
 
   // Compute A
   update_hack(hasher, pwd, pwlen);
   update_hack(hasher, salt, slen);
-  update_hack(hasher, B.hash8, pwlen);
+  update_hack(hasher, B.hash, pwlen);
 
   uint8_t curr = pwlen;
   for (int i=0; i < 8; i++) {
     if (curr) {
       if (curr & 1) {
-        update_hack(hasher, B.hash8, sizeof(B.hash8));
+        update_hack(hasher, B.hash, sizeof(B.hash));
       } else {
         update_hack(hasher, pwd, pwlen);
       }
     }
     curr >>= 1;
   }
-  SHA512Hash A = FIX_ENDIAN(hasher.digest());
+  SHA512ByteHash A = hasher.byte_digest();
 
   hasher.reset();
 
@@ -121,15 +98,15 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
   for (int i=0; i < pwlen; i++) {
     update_hack(hasher, pwd, pwlen);
   }
-  SHA512Hash DP = FIX_ENDIAN(hasher.digest());
+  SHA512ByteHash DP = hasher.byte_digest();
 
   hasher.reset();
 
   // Compute DS
-  for (int i=0; i < 16 + A.hash8[0]; i++) {
+  for (int i=0; i < 16 + A.hash[0]; i++) {
     update_hack(hasher, salt, slen);
   }
-  SHA512Hash DS = FIX_ENDIAN(hasher.digest());
+  SHA512ByteHash DS = hasher.byte_digest();
 
 
   // Note P is the first N bytes of DP
@@ -138,13 +115,13 @@ void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, co
 
   // TODO: unroll this
   for (int i=0; i < 21; i++) {
-    uint32_t C = A.hash8[P[3*i]] | (A.hash8[P[3*i + 1]] << 8) | (A.hash8[P[3*i + 2]] << 16);
+    uint32_t C = A.hash[P[3*i]] | (A.hash[P[3*i + 1]] << 8) | (A.hash[P[3*i + 2]] << 16);
     for (int j=0; j < 4; j++) {
       hash[4*i + j] = b64t[(C >> (6*j)) & 0x3f];
     }
   }
   // Handle last byte
-  uint8_t C = A.hash8[P[63]];
+  uint8_t C = A.hash[P[63]];
   hash[84] = b64t[C & 0x3f];
   hash[85] = b64t[C >> 6];
 
