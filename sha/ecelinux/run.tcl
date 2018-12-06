@@ -16,6 +16,7 @@ set_top dut
 add_files SHA512.cpp
 add_files unix_cracker.cpp
 add_files main.cpp
+add_files helpers.cpp
 add_files -tb unix_cracker_test.cpp
 #add_files -tb data
 
@@ -31,7 +32,8 @@ create_clock -period 9
 set_directive_array_partition SHA512Hasher::SHA512Hasher buf -type cyclic -factor 8
 
 set_directive_unroll read64clear/LOOP
-set_directive_unroll -factor 8 memcpy_u8/LOOP
+#set_directive_unroll -factor 8 memcpy_u8/LOOP
+set_directive_inline -off memcpy_u8
 set_directive_unroll -factor 8 memset_u8/LOOP
 set_directive_unroll SHA512Hasher::digest/LOOP_U64
 set_directive_unroll SHA512Hasher::byte_digest/LOOP_DIGEST
