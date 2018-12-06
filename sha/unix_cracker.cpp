@@ -59,7 +59,7 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
       hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
 
-    C = FIX_ENDIAN(hasher.digest());
+    C = hasher.digest();
 
     twos = twos ? 0 : 1;
     threes = threes == 2 ? 0 : threes + 1;
