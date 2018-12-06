@@ -33,30 +33,37 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
                                       int nrounds=5000) {
   SHA512ByteHash C = A;
 
+  uint8_t twos = 0;
+  uint8_t threes = 0;
+  uint8_t sevens = 0;
   for (int i=0; i < nrounds; i++) {
     hasher.reset();
 
-    if (i % 2 == 1) {
-      hasher.update(DP.hash, pwlen);
+    if (twos) {
+      hasher.update(DP.hash8, pwlen);
     } else {
-      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
+      hasher.update(C.hash8, SHA512Hasher::HASH_SIZE);
     }
 
-    if (i % 3 != 0) {
-      hasher.update(DS.hash, slen);
+    if (threes) {
+      hasher.update(DS.hash8, slen);
     }
 
-    if (i % 7 != 0) {
-      hasher.update(DP.hash, pwlen);
+    if (sevens) {
+      hasher.update(DP.hash8, pwlen);
     }
 
-    if (i % 2 == 0) {
-      hasher.update(DP.hash, pwlen);
+    if (twos == 0) {
+      hasher.update(DP.hash8, pwlen);
     } else {
-      hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
+      hasher.update(C.hash8, SHA512Hasher::HASH_SIZE);
     }
 
-    C = hasher.byte_digest();
+    C = FIX_ENDIAN(hasher.digest());
+
+    twos = twos ? 0 : 1;
+    threes = threes == 2 ? 0 : threes + 1;
+    threes = sevens == 6 ? 0 : sevens + 1;
   }
   return C;
 
