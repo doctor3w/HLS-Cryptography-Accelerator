@@ -30,6 +30,7 @@ create_clock -period 10
 ### You can insert your own directives here ###
 # Partition the array so 64_bit accesses are fast
 set_directive_array_partition SHA512Hasher::SHA512Hasher buf -type cyclic -factor 8
+set_directive_array_partition SHA512Hasher::SHA512Hasher state.hash -type cyclic -factor 4
 #set_directive_array_partition runIters C.hash -type cyclic -factor 2
 
 
@@ -41,6 +42,8 @@ set_directive_unroll -factor 4 SHA512Hasher::byte_digest/LOOP_DIGEST
 
 # We do not want update to be inlined in calc
 set_directive_inline -off SHA512Hasher::update
+
+set_directive_inline read64clear
 
 set_directive_array_partition SHA512Hasher::hashBlock W -type complete
 set_directive_pipeline SHA512Hasher::hashBlock/LOOP16

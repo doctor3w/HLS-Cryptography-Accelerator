@@ -33,8 +33,9 @@ public:
   static const uint8_t HASH_SIZE = 64;
 
   static const uint8_t BLOCK_SIZE = 128;
-private:
+// private:
   SHA512Hash state;
+private:
   uint8_t buf[BLOCK_SIZE]; // TODO: This should be partitioned in chunks of 8
   uint8_t bsize;
   uint64_t total;
