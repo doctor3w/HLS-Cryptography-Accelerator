@@ -25,13 +25,12 @@ open_solution "solution1"
 set_part {xc7z020clg484-1}
 
 # Target clock period is 10ns
-create_clock -period 10
+create_clock -period 9
 
 ### You can insert your own directives here ###
 # Partition the array so 64_bit accesses are fast
 set_directive_array_partition SHA512Hasher::SHA512Hasher buf -type cyclic -factor 8
 set_directive_array_partition SHA512Hasher::SHA512Hasher state.hash -type cyclic -factor 4
-#set_directive_array_partition runIters C.hash -type cyclic -factor 2
 
 
 set_directive_unroll read64clear/LOOP
