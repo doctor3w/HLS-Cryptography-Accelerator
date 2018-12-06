@@ -77,7 +77,7 @@ LOOP_U64:
   return state;
 }
 
-void SHA512ByteHash SHA512Hasher::byte_digest(uint8_t buf[64]) {
+void SHA512Hasher::byte_digest(uint8_t buf[64]) {
   digest();
 LOOP_DIGEST:
   for (int i=0; i < 8; i++) {
