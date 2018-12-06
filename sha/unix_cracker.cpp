@@ -19,14 +19,6 @@ static const char b64t[65] =
 "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 
-static void hash_update_hack(SHA512Hasher &hasher, uint64_t *arr, uint8_t len) {
-  #pragma HLS inline off
-  hasher.update(arr, len);
-}
-
-#pragma HLS inline
-
-
 static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
                                       int slen, int pwlen,
                                       const SHA512ByteHash &A,
@@ -64,30 +56,30 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
 
 }
 
-void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const char salt[MAX_SALT_LEN], const uint8_t slen, int nrounds) {
+void calc(char hash[86], const uint8_t pwd[MAX_PWD_LEN], const uint8_t pwlen, const uint8_t salt[MAX_SALT_LEN], const uint8_t slen, int nrounds) {
   assert(pwlen <= 64);
   assert(slen <= 64);
   // Compute B
   SHA512Hasher hasher;
-  hash_update_hack(hasher, pwd, pwlen);
-  hash_update_hack(hasher, salt, slen);
-  hash_update_hack(hasher, pwd, pwlen);
+  hasher.update(pwd, pwlen);
+  hasher.update(salt, slen);
+  hasher.update(pwd, pwlen);
   SHA512ByteHash B = hasher.byte_digest();
 
   hasher.reset();
 
   // Compute A
-  hash_update_hack(hasher, pwd, pwlen);
-  hash_update_hack(hasher, salt, slen);
-  hash_update_hack(hasher, B.hash, pwlen);
+  hasher.update(pwd, pwlen);
+  hasher.update(salt, slen);
+  hasher.update(B.hash, pwlen);
 
   uint8_t curr = pwlen;
   for (int i=0; i < 8; i++) {
     if (curr) {
       if (curr & 1) {
-        hash_update_hack(hasher, B.hash, sizeof(B.hash));
+        hasher.update(B.hash, sizeof(B.hash));
       } else {
-        hash_update_hack(hasher, pwd, pwlen);
+        hasher.update(pwd, pwlen);
       }
     }
     curr >>= 1;
@@ -98,7 +90,7 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
 
   // Compute DP
   for (int i=0; i < pwlen; i++) {
-    hash_update_hack(hasher, pwd, pwlen);
+    hasher.update(pwd, pwlen);
   }
   SHA512ByteHash DP = hasher.byte_digest();
 
@@ -106,9 +98,10 @@ void calc(char hash[86], const char pwd[MAX_PWD_LEN], const uint8_t pwlen, const
 
   // Compute DS
   for (int i=0; i < 16 + A.hash[0]; i++) {
-    hash_update_hack(hasher, salt, slen);
+    hasher.update(salt, slen);
   }
   SHA512ByteHash DS = hasher.byte_digest();
+
 
   // Note P is the first N bytes of DP
   // We reuse A for C

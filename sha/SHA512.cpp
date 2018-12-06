@@ -95,9 +95,8 @@ LOOP_U64:
 }
 
 
-void SHA512Hasher::update(const void *msgp, uint8_t len) {
+void SHA512Hasher::update(const uint8_t *msg, uint8_t len) {
   assert (len <= BLOCK_SIZE);
-  uint8_t *msg = (uint8_t*)msgp;
   uint8_t remain = BLOCK_SIZE - bsize;
   uint8_t tocpy = MIN(remain, len);
   memcpy_u8(buf+bsize, msg, tocpy);
