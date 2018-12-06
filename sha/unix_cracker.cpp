@@ -59,11 +59,11 @@ static inline SHA512ByteHash runIters(SHA512Hasher &hasher,
       hasher.update(C.hash, SHA512Hasher::HASH_SIZE);
     }
 
-    C = hasher.digest();
+    C = hasher.byte_digest();
 
     twos = twos ? 0 : 1;
     threes = threes == 2 ? 0 : threes + 1;
-    threes = sevens == 6 ? 0 : sevens + 1;
+    sevens = sevens == 6 ? 0 : sevens + 1;
   }
   return C;
 
