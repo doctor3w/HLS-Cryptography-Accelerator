@@ -1,0 +1,3 @@
+#! /bin/bash
+
+cat "$1" | tr -s ' ' | grep "$2" | cut -d ';' -f 2 | cut -d ' ' -f 2
