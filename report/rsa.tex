@@ -119,3 +119,40 @@ When using the provided Makefile ("rsa/Makefile"), the desired mode can be set a
 % for another. Consider going into detail for one particular instance of your experiment and analyze how
 % it achieves the given results.
 
+We evaluated both software versions (``opt'' and ``sim'') on both the ZedBoard and ecelinux machines.
+The FPGA design was evaluated on the ZedBoard. Due to the complexity of the design, there is not a 
+significant baseline design to compare it with. Without the optimization directives, it was difficult
+to even get a design that met timing closure. Table \ref{table:rsadata} shows the timing for each implementation
+on each computer. The speedup columns (or rather, slowdown) show the speedup relative to the ``fpga-opt'' implementation.
+The ``cosim'' row indicates the expected time as given by the HLS co-simulation tool.
+
+Overall, the software implementations are far better than the FPGA implementation. The optimal 
+software implementation running on ecelinux (``ecelinux-sw-opt'') was very fast, about 380x faster
+than the FPGA implementation for decryption. This is because the GMP library is very well optimized.
+Essentially, it is not even using the same algorithms we accelerated, but instead running far more advanced
+and complicated algorithms. Even on the ZedBoard, which has a much slower processor than ecelinux, 
+the optimized software algorithm is about 30 times faster for encryption than the FPGA.
+The simulated software algorithm (which is running the HLS code) is faster, at least for decryption, 
+than the ZedBoard CPU.
+
+Overall, however, RSA was really difficult to accelerate. Large number arithmetic has very little obvious parallelism,
+and is fraught with dependencies. Furthermore, there is no reason to accelerate it. Since it is known to be slow,
+most modern cryptographic algorithms use RSA only to exchange a key for a symmetric algorithm such as AES, and then use AES
+for the bulk of the data transfer. PGP is one such algorithm. Given that essentially one RSA block is only used
+for a message, and the bulk is another algorithm, it is wasteful to specialize FPGA area for RSA.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Version         & Encrypt (ms) & Decrypt (ms) & Speedup Enc & Speedup Dec \\ \midrule
+ecelinux-sw-opt & 0.0355       & 0.627        & 0.00306     & 0.00261     \\
+ecelinux-sw-sim & 1.6421       & 112.7        & 0.14161     & 0.46966     \\
+zedboard-sw-opt & 0.3997       & 19.478       & 0.03447     & 0.08117     \\
+zedboard-sw-sim & 8.1581       & 576.2225     & 0.70353     & 2.40133     \\
+fpga-opt        & 11.596       & 239.96       & 1           & 1           \\
+cosim           & 3.918        & 234.23       &             &             \\ \bottomrule
+\end{tabular}
+\label{table:rsadata}
+\caption{RSA algorithm runtimes}
+\end{table}
