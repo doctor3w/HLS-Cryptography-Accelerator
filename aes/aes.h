@@ -5,9 +5,9 @@
 #include <stdint.h>
 #include "typedefs.h"
 
-#define AES_128 1
+#define AES_128 0
 #define AES_192 0
-#define AES_256 0
+#define AES_256 1
 
 #ifndef NUM_BLOCKS
 #define NUM_BLOCKS 500

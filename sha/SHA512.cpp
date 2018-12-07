@@ -77,35 +77,53 @@ LOOP_U64:
   return state;
 }
 
-
-
-SHA512ByteHash SHA512Hasher::byte_digest() {
+void SHA512Hasher::byte_digest(uint8_t buf[64]) {
   digest();
-  SHA512ByteHash ret;
 LOOP_DIGEST:
   for (int i=0; i < 8; i++) {
     uint64_t curr = state.hash[i];
 LOOP_U64:
     for (int j=0; j < sizeof(uint64_t); j++) {
-      ret.hash[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
+      buf[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
       curr >>= 8;
     }
   }
-  return ret;
+}
+
+// SHA512ByteHash SHA512Hasher::byte_digest() {
+//   digest();
+//   SHA512ByteHash ret;
+// LOOP_DIGEST:
+//   for (int i=0; i < 8; i++) {
+//     uint64_t curr = state.hash[i];
+// LOOP_U64:
+//     for (int j=0; j < sizeof(uint64_t); j++) {
+//       ret.hash[sizeof(uint64_t)*(i+1) - 1 - j] = curr & 0xff;
+//       curr >>= 8;
+//     }
+//   }
+//   return ret;
+// }
+
+
+void SHA512Hasher::buf_cpy(uint8_t offset, const uint8_t *src, uint8_t len) {
+  for (int i=0; i < len; i++) {
+    #pragma HLS unroll factor=8
+    buf[offset + i] = src[i];
+  }
 }
 
 
-void SHA512Hasher::update(const void *msgp, uint8_t len) {
+void SHA512Hasher::update(const uint8_t *msg, uint8_t len) {
   assert (len <= BLOCK_SIZE);
-  uint8_t *msg = (uint8_t*)msgp;
   uint8_t remain = BLOCK_SIZE - bsize;
   uint8_t tocpy = MIN(remain, len);
-  memcpy_u8(buf+bsize, msg, tocpy);
+  buf_cpy(bsize, msg, tocpy);
 
   if (tocpy < len || len == remain) { // Not enough room or full
     hashBlock();
     bsize = len - tocpy;
-    memcpy_u8(buf, msg + tocpy, bsize);
+    buf_cpy(0, msg + tocpy, bsize);
   } else { // Enough room
     bsize += len;
   }

@@ -22,8 +22,8 @@ void dut(
     hls::stream<ap_uint<32> > &strm_out
 )
 {
-  char passwd[MAX_PWD_LEN+1];
-  char salt[MAX_SALT_LEN+1];
+  uint8_t passwd[MAX_PWD_LEN+1];
+  uint8_t salt[MAX_SALT_LEN+1];
   int s,p;
 
   // First read in the salt

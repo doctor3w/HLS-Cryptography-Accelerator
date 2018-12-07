@@ -35,7 +35,7 @@ fpga: host.cpp
 
 bitstream: 
 	@echo "Synthesizing aes and creating bitstream on amdpool ..."
-	vivado_hls -f run_aes.tcl
+	vivado_hls -f run.tcl
 	./run_bitstream.sh
 
 clean-sw:

@@ -16,6 +16,7 @@ set_top dut
 add_files SHA512.cpp
 add_files unix_cracker.cpp
 add_files main.cpp
+add_files helpers.cpp
 add_files -tb unix_cracker_test.cpp
 #add_files -tb data
 
@@ -29,12 +30,19 @@ create_clock -period 9
 ### You can insert your own directives here ###
 # Partition the array so 64_bit accesses are fast
 set_directive_array_partition SHA512Hasher::SHA512Hasher buf -type cyclic -factor 8
+set_directive_array_partition SHA512Hasher::SHA512Hasher state.hash -type cyclic -factor 4
+
 
 set_directive_unroll read64clear/LOOP
 set_directive_unroll -factor 8 memcpy_u8/LOOP
 set_directive_unroll -factor 8 memset_u8/LOOP
 set_directive_unroll SHA512Hasher::digest/LOOP_U64
-set_directive_unroll SHA512Hasher::byte_digest/LOOP_DIGEST
+set_directive_unroll -factor 4 SHA512Hasher::byte_digest/LOOP_DIGEST
+
+# We do not want update to be inlined in calc
+set_directive_inline -off SHA512Hasher::update
+
+set_directive_inline read64clear
 
 set_directive_array_partition SHA512Hasher::hashBlock W -type complete
 set_directive_pipeline SHA512Hasher::hashBlock/LOOP16
@@ -51,5 +59,5 @@ csim_design -O
 # Synthesize the design
 csynth_design
 # Co-simulate the design
- cosim_design
+cosim_design
 exit
