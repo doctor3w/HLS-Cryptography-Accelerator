@@ -1,0 +1,99 @@
+%%%% Proceedings format for most of ACM conferences (with the exceptions listed below) and all ICPS volumes.
+\documentclass[sigconf]{acmart}
+%%%% As of March 2017, [siggraph] is no longer used. Please use sigconf (above) for SIGGRAPH conferences.
+
+%%%% Proceedings format for SIGPLAN conferences 
+% \documentclass[sigplan, anonymous, review]{acmart}
+
+%%%% Proceedings format for SIGCHI conferences
+% \documentclass[sigchi, review]{acmart}
+
+%%%% To use the SIGCHI extended abstract template, please visit
+% https://www.overleaf.com/read/zzzfqvkmrfzn
+
+
+\usepackage{booktabs} % For formal tables
+\settopmatter{printacmref=false}
+
+% Copyright
+\setcopyright{none}
+%\setcopyright{acmcopyright}
+%\setcopyright{acmlicensed}
+%\setcopyright{rightsretained}
+%\setcopyright{usgov}
+%\setcopyright{usgovmixed}
+%\setcopyright{cagov}
+%\setcopyright{cagovmixed}
+
+
+% DOI
+\acmDOI{}
+
+% ISBN
+\acmISBN{}
+
+%Conference
+\acmConference{High Level Digital Design Automation}{Dec. 2018}{Ithaca, NY USA}
+\acmYear{}
+%\copyrightyear{2016}
+
+
+%\acmArticle{4}
+%\acmPrice{15.00}
+
+% These commands are optional
+%\acmBooktitle{Transactions of the ACM Woodstock conference}
+%\editor{Jennifer B. Sartor}
+%\editor{Theo D'Hondt}
+%\editor{Wolfgang De Meuter}
+
+
+\begin{document}
+\title{Crypto Accelerator}
+%\titlenote{Produces the permission block, and
+%  copyright information}
+%\subtitle{}
+%\subtitlenote{The full version of the author's guide is available as
+%  \texttt{acmart.pdf} document}
+
+
+\author{Drew Dunne}
+%\authornote{Dr.~Trovato insisted his name be first.}
+%\orcid{1234-5678-9012}
+\affiliation{%
+  \institution{Cornell University}
+  \streetaddress{---}
+  \city{Ithaca}
+  \state{NY}
+  \postcode{14850}
+}
+\email{asd222@cornell.edu}
+
+\author{Jacob Glueck}
+%\authornote{Dr.~Trovato insisted his name be first.}
+%\orcid{1234-5678-9012}
+\affiliation{%
+  \institution{Cornell University}
+  \streetaddress{---}
+  \city{Ithaca}
+  \state{NY}
+  \postcode{14850}
+}
+\email{jng55@cornell.edu}
+
+% The default list of authors is too long for headers.
+\renewcommand{\shortauthors}{Drew Dunne}
+
+
+% \begin{abstract}
+
+% \end{abstract}
+
+\maketitle
+
+\input{body-conf}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{sample-bibliography}
+
+\end{document}
