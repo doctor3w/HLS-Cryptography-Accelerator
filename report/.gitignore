@@ -1,8 +1,8 @@
 *.log
-sig-conf.aux
-sig-conf.bbl
-sig-conf.blg
-sig-conf.fdb_latexmk
-sig-conf.fls
-sig-conf.pdf
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.pdf
 
