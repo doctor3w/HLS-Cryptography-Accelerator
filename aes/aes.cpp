@@ -28,7 +28,7 @@ static const uint8_t rcon[11] = {
 #define sBoxInv(num) (rsbox[(num)])
 
 static void keyExpansion(roundkey_t roundKey, aes_key_t key) {
-  //#pragma HLS inline off
+//  #pragma HLS inline
   unsigned i, j, k;
   bit32_t tempa, tempb;
   bit8_t temp;
@@ -82,12 +82,12 @@ EXPAND_LOOP:
 }
 
 static state_t AddRoundKey(uint8_t round, state_t state, roundkey_t roundKey) {
-  //#pragma HLS inline off
+//  #pragma HLS inline
   return state ^ roundKey[round];
 }
 
 static state_t SubBytes(state_t state) {
-  //#pragma HLS inline off
+//  #pragma HLS inline 
   uint8_t i, j, k;
 SUBBYTE_1:  
   for (i = 0; i < 4; ++i) {
@@ -103,7 +103,7 @@ SUBBYTE_1:
 }
 
 static state_t ShiftRows(state_t state) {
-  //#pragma HLS inline off
+//  #pragma HLS inline
   bit8_t temp;
   // no rotate of row 0
   
@@ -138,7 +138,7 @@ static bit8_t xtime(bit8_t x) {
 }
 
 static state_t MixColumns(state_t state) {
-  //#pragma HLS inline off
+//  #pragma HLS inline
   uint8_t i, c_off;
   bit8_t all, comb, s0c;
 MIXCOL:
@@ -169,7 +169,7 @@ MIXCOL:
 }
 
 static state_t Cipher(state_t state, roundkey_t roundKey) {
-  //#pragma HLS inline off
+//  #pragma HLS inline
   uint8_t round = 0;
   state = AddRoundKey(0, state, roundKey);
   for (round = 1; round < Nr; round++) {
