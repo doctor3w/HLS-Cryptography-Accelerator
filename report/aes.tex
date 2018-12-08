@@ -53,30 +53,32 @@ In our top level, we have a loop that reads in values, ciphers the counter, XORs
 % than another, why one design achieves a higher metric than another, or how you trade-off one metric
 % for another. Consider going into detail for one particular instance of your experiment and analyze how
 % it achieves the given results.
-In order to evaluate our optimized FPGA version, we create a host program that reads 8000 bytes of data, sends the key, initiation vector, and data to the FPGA, and then reads back the encrypting data and compares that to the pre-saved encrypted data for testing. Based on our synthesize report, our pipelined block loop had an II of 4 and a depth of 46. Thus we deemed 500 blocks sufficient for measuring speedup as we have well surpassed the warm up and cool down times of the pipeline. The final area usage was drastically lower than expecting, reaching only about 37\% of the LUTs. The full area usage for AES-256 is in Table \ref{table:aesarea}. 
+In order to evaluate our optimized FPGA version, we create a host program that reads 8000 bytes of data (500 blocks), sends the key, initiation vector, and data to the FPGA, and then reads back the encrypting data and compares that to the pre-saved encrypted data for testing. Based on our synthesize report, our pipelined block loop had an II of 4 and a depth of 46. Thus we deemed 500 blocks sufficient for measuring speedup as we have well surpassed the warm up and cool down times of the pipeline. The final area usage was drastically lower than expecting, reaching only about 37\% of the LUTs. The full area usage for AES-256 is in Table \ref{table:aesarea}. The final estimated latency from the synthesis report was 2089 cycles for AES256. Unfortunately, the limiting factor on the latency came from the HLS stream class, which could only use 32 bit wide integers with the Zedboard, which only had one read port. This resulted in our II of 4, as it needed to be read four times for each block. For an estimated ideal value, we commented out three of the four reads and synthesized this new code (which obviously produces incorrect values). The resulting synthesis report shows a max interval latency of 589 cycles for AES256, meaning that we've achieved almost 1 cycle per block to be encrypted. The 89 cycles attached is most likely made up of the key expansion latency and reading the key and IV from the stream, and thus is won't grow as we supply more and more blocks. 
 
 \begin{table}[h]
 \begin{center}
-\begin{tabular}{| c | c | c | c | c |}\hline
-& BRAM\_18K &  DSP48E &   FF    &  LUT \\\hline
-Utilization (\%)  &       15 &      0 &       6 &     37 \\\hline
+\begin{tabular}{@{}r r r r r@{}}
+\toprule
+& BRAM\_18K &  DSP48E &   FF    &  LUT \\ \midrule
+Utilization (\%)  &       15 &      0 &       6 &     37 \\ \bottomrule
 \end{tabular}
 \label{table:aesarea}
 \caption{The final area usage of AES-256 (other key-lengths are very similar).}
 \end{center}
 \end{table}
 
-For a final comparison, we passed the same 8000 bytes through the tiny-AES-c embedded processor optimized version of AES on both the ecelinux server's as well as the zedboard's microprocessor. The results of this test along with the FPGA baseline, FPGA optimized, and ecelinux optimized csim times are in Table \ref{table:aestime}. As we can see, both ecelinux runs beat the FPGA by an order of magnitude, which is largely expected. The FPGA does successfully beat the Zedboard's ARM processor, with a resulting speedup of about 1.75x. The FPGA baseline times are estimated because they wouldn't actually synthesize due to too much area usage. We believe this is because without unrolling some loops, the variable slicing of the large ap\_uints require a lot of muxing, thus producing much more area. 
+For a final comparison, we passed the same 8000 bytes through the tiny-AES-c embedded processor optimized version of AES on both the ecelinux server's as well as the zedboard's microprocessor. The results of this test along with the FPGA baseline, FPGA optimized, and ecelinux optimized csim times are in Table \ref{table:aestime}. As we can see, both ecelinux runs beat the FPGA by an order of magnitude, which is largely expected. The FPGA does successfully beat the Zedboard's ARM processor, with a resulting speedup of about 1.75x. The FPGA baseline times are estimated because they wouldn't actually synthesize due to too much area usage. We believe this is because without unrolling some loops, the variable slicing of the large ap\_uints require a lot of muxing, thus producing much more area. As mentioned above, if we could reduce the bandwidth limitation of the HLS stream class (it is entirely possible to create a custom port to send data across), we could achieve close to 500 cycles per block, which would put us in the time range of around 5ms. This time is the same order of magnitude as ecelinux, which would be extremely impressive for the amount of Watts burned in comparison. 
 
 \begin{table}[h]
 \begin{center}
-\begin{tabular}{| c | c | c | c |}\hline
-Test & AES128 (ms) & AES192 (ms) & AES256 (ms) \\\hline
-ecelinux-sw & 1.6 & 1.9 & 2.1 \\\hline
-ecelinux-csim & 5.1 & 6.2 & 7.2 \\\hline
-zedboard-sw & 25.5 & 30.0 & 34.3 \\\hline
-fpga-baseline & 4560 & 5820 & 4120 \\\hline
-fpga-opt & 19.3 & 20.5 & 17.5 \\\hline
+\begin{tabular}{@{}r r r r@{}}
+\toprule
+Test & AES128 (ms) & AES192 (ms) & AES256 (ms) \\ \midrule
+ecelinux-sw & 1.6 & 1.9 & 2.1 \\
+ecelinux-csim & 5.1 & 6.2 & 7.2 \\
+zedboard-sw & 25.5 & 30.0 & 34.3 \\
+fpga-baseline & 4560.0 & 5820.0 & 4120.0 \\
+fpga-opt & 19.3 & 20.5 & 17.5 \\ \bottomrule
 \end{tabular}
 \label{table:aestime}
 \caption{The results of the tests run for evaluation.}
