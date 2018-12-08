@@ -20,7 +20,7 @@ all: csim
 
 csim: aes.cpp aes_test.cpp
 	@echo "Compiling & simulating aes on amdpool ..."
-	g++ ${CFLAGS} $^ -o aes -lrt
+	g++ ${CFLAGS} $^ -O3 -o aes -lrt 
 	./aes
 
 sw: aes-sw.c test-sw.c

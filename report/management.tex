@@ -1,0 +1,48 @@
+\section{Project Management}
+% This section should clearly identify the work division among the students in
+% the group using a project timeline that lists the tasks and milestones of the project, the member(s) of
+% the group responsible for each task, and the actual completion date of each task. This section should
+% contain a description of how the overall project developed and any successes and/or challenges during
+% the course of the project.
+
+The initial version of the project called for us to implement 4 algorithms: Elliptic Curve Cryptography, RSA, AES, and SHA. 
+Alex was supposed to do elliptic curve, Jacob RSA, Drew AES, and Aaron SHA.
+However, elliptic curve cryptography proved to be difficult to implement, so Alex joined forces with Aaron to work
+on a Linux password cracker.
+From that point on, we all worked individually on our own projects and got them working.
+The following list details the work performed by each member:
+
+\begin{itemize}
+\item \textbf{Drew} (AES)
+
+\begin{itemize}
+\item Implement simple software AES (2018-11-07).
+\item Synthesizable baseline AES (2018-11-15).
+\item Optimizing AES by using apuints and rewriting (2018-11-20).
+\item Optimized CTR AES complete (2018-11-29).
+\end{itemize}
+
+\item \textbf{Jacob} (RSA)
+\begin{itemize}
+\item Implement optimized software baseline RSA using GMP (2018-11-07).
+\item Implemented very bad RSA baseline (2018-11-15).
+\item Removed most variable bound loops from algorithm (2018-11-20).
+\item Work on meeting timing closure and optimized version (2018-11-29).
+\end{itemize}
+
+\item \textbf{Aaron} (SHA)
+\begin{itemize}
+\item Optimized SHA256 for CPU (2018-11-07).
+\item Synthesizable SHA256 (2018-11-07).
+\item Synthesizable SHA512 (2018-11-20).
+\item Created Unix password cracker (5000 rounds with special salting) (2018-11-29).
+\end{itemize}
+
+\item \textbf{Alex} (SHA)
+\begin{itemize}
+\item Investigate Elliptic Curves, decide on Secp256k1 curve (2018-11-07).
+\item Abort ECC, switch to password cracker. Design simple brute force algorithm (2018-11-15).
+\item Explore F1 (2018-11-29).
+\item Write host program for password cracker (2018-11-29).
+\end{itemize}
+\end{itemize}
