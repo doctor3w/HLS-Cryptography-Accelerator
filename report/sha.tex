@@ -185,9 +185,9 @@ as opposed to a different BRAM address.
 The final set of optimizations invovled partitioning the 128 byte block buffer
 cyclically by a factor of 8. This allowed the first length 16 loop discussed
 in the previous paragraph, to initlize each $W_i$ in a single cycle. Next, the
-intermediate value hash array was fully partitioned so that all $a \ldots h$ could
+intermediate value hash array was partially partitioned so that all $a \ldots h$ could
 be initlized at the beggening of \emph{hashBlock()} as well as updated
-at the end ind a single cycle. Finally both the 16 and 64 iteration loop were
+at the end in a single cycle. Finally both the 16 and 64 iteration loop were
 pipelined, and due to the previous optimizations, allowed them to be II1.
 
 
@@ -198,6 +198,22 @@ there was practically no further parallelism that could be exploited in \emph{ha
 
 
 \subsubsection{Unix Password Hashing}
+The entirety of the SHA-512 portion of the $crypt()$ function was implemented
+on the FPGA in $unix\_cracker.cpp$. The implementation was relatively straight
+forward, and closely resembles the pseudo code in \ref{SHA512-unix}.
+Due to the lack of remaining resources on the Zynq's FPGA, only minor
+optimizations were applied to this portion of the implementation.
+Additionally, the vast majority of the compute time was spent in the
+\emph{SHA512Hasher} methods, so resources were conserved to be used tn enable the
+\emph{SHA512Hasher} optimizations explained previously.
+
+A basic host program was written, \emph{zedboard/host.cpp}, which sends a
+salt and password (null-terminator seperated) over the Xillybus. The FPGA then
+computes the hash using the $unix\_cracker.cpp$ hash implementation
+and sends the resulting hash back. The host program is responsible for
+generating password guesses, sending to the FPGA, then comparing the returned
+result against the known hash extracted from the ``etc/shadow'' file.
+If these two hashes match, then the password tested was correct.
 
 
 \subsection{Evaluation}
