@@ -148,6 +148,22 @@ version are nealy indentical to the software implementations, but they make use 
 directives. The shift-register versions use the optimization described in the Techniques section to
 reduce the size of W and to remove the extraneous loops, in addition to making use of optimization
 directives}
-\label{table:shaversions}
+\label{table:shausage}
+\end{table}
+
+\begin{table}[h]
+\begin{tabular}{@{}lllll@{}}
+\toprule
+  Version   & Average Time (s) & Hash/sec & Speedup \\ \midrule
+  ecelinux  & 0.00346          & 229      & 24      \\
+  fpga-opt2 & 0.0200           & 50.1     & 3.5     \\
+  fpga-opt1 & 0.0300           & 33.3     & 5.2     \\
+  zedboard  & 0.104            & 9.62     & 1       \\ \bottomrule
+\end{tabular}
+\caption {Results for the Unix Password Hasher. The ecelinux and zedboard versions were idential software
+  implementations, compiled with -O3. The fpga-opt1 and fpga-opt2 were differently optimized FPGA
+  implementations of the password hashing algorithm. The speedups are given relative to the Zedboard ARM
+  CPU.}
+\label{table:hashresults}
 \end{table}
 
