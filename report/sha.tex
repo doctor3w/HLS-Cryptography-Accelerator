@@ -1,14 +1,14 @@
 \section{SHA512}
 The Secure Hash Algorithm (SHA) is a crytographic hash function used in a wide range of applications, from checking
 file integrity to securely storing passwords. Unlike AES or RSA, which are usually used for
-encryting messages, SHA hashes an arbitraty size message into a fixed-size irreversable hash.
+encrypting messages, SHA hashes an arbitraty size message into a fixed-size irreversable hash.
 The original SHA algorithm, SHA-1, produced 160-bit hashes, while SHA-512
 produces 512-bit hashes. From these hashes it is nearly impossible to determine
 what the original message was.
 
 For this project we decided to implement SHA-512 on an FPGA.
 We then use it to accelerate unix password hashing and implemement
-a hardware accelerated Unix password cracker.
+a brute-force hardware accelerated Unix password cracker.
 
 \subsection{Techniques}
 % This section should provide a detailed description of the applications, algorithms, or
@@ -84,8 +84,6 @@ operations including shifting and XOR-ing.
   \end{algorithmic}
 \end{algorithm}
 
-\subsection{Unix Password Hashing}
-
 \subsection{Implementation}
 % This section describe how you implemented your designs. For example, what
 % programming languages did you use? Did you take advantage of any third-party libraries? Is your
@@ -97,7 +95,8 @@ operations including shifting and XOR-ing.
 % the reader better appreciate your work. Please also include one or two interesting aspects of your
 % implementation, especially any specific implementation strategies necessary for creating a functionally
 % correct design with good performance.
-\subsection{SHA-512}
+\subsubsection{SHA-512}
+
 Before we created the password cracker, we implemented the SHA-512 core on its own, first to ensure
 correctness, and then as a way to optimize it in isolation. We implemented SHA-512 in software first,
 using the algorithm presented in the "Descriptions of SHA-256, SHA-384, and SHA-512" paper that is linked
@@ -120,7 +119,7 @@ just the current message chunk with no additional processing, we can simultaneou
 rounds of the compression function and also fill $W$ in parallel, and then do the remaining $64$ rounds
 computing one new $W$ value each time.
 
-\subsection{Unix Password Hashing}
+\subsubsection{Unix Password Hashing}
 
 \subsection{Evaluation}
 % Students should describe the experimental setup used to evaluate their design. Students
