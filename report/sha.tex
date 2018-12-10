@@ -3,7 +3,7 @@ The Secure Hash Algorithm (SHA) is a hash function used in a wide range of appli
 file integrity to securely storing passwords. There are a number of versions of SHA which each generate
 different sized hashes. The original SHA algorithm, SHA-1, produced 160-bit hashes, while SHA-512,
 currently used by Linux to hash passwords, produces 512-bit hashes. For this project we decided to
-implement SHA-512 since our end goal was to create a Unix password cracker.
+implement SHA-512 since our end goal was to create a Unix password cracker. 
  
 \subsection{Techniques}
 % This section should provide a detailed description of the applications, algorithms, or
@@ -15,6 +15,61 @@ implement SHA-512 since our end goal was to create a Unix password cracker.
 % techniques. Do not include detailed information about your source code as your report should be at a
 % high level.
 \subsection{SHA-512}
+The core of SHA-512 is the compression function, which takes an intermediate hash value and a 1024-bit
+block of data and returns another hash value which is essentially the intermediate hash value encrypted
+with the message as the key. In addition to the compression function, there is a small amount of
+pre-processing done on the input data. First, the data is padded so that its size is a multiple of
+1024 bits. Then the data is split into blocks of 1024-bits. These are the messages that the compression
+function operates on.
+
+For the first block, the hash function is called with a fixed initial value. Then for each subsequent
+block, the intermediate hash passed into the compression function is the result of the previous run of the
+compresssion computation. That is, any given intermediate hash value directly depends on the preceeding
+intermediate hash.
+
+The algorithm for the compression function is given in \ref{SHA512}. Let $H^i$ denote the current
+intermediate hash value, and $H^i_n$ be the $n^{th}$ 64-bit word in that hash. Let $M^i$ denote the
+$i^{th}$ 1024-bit chunk of the message, and let $M^i_j$ denote the $j^{th}$ 64-bit word in that chunk.
+For our purposes, the exact definitions of $\Sigma_0, \Sigma_1, \sigma_0, \sigma_1, Maj(a,b,c),
+Ch(e,f,g)$ are not relevant. It is sufficient to understand that they are combinations of various bitwise
+operations including shifting.
+
+\begin{algorithm}
+  \label{SHA512}
+  \caption{SHA-512 Procedure for hashing a block. Adapted from \url{http://www.iwar.org.uk/comsec/resources/cipher/sha256-384-512.pdf}}
+  \begin{algorithmic}
+    \Procedure{hashBlock}{}
+    \State $a \leftarrow H^{i-1}_1$
+    \Comment Assign $a..h$ to the corresponding 64-bit chunks of the intermediate hash
+    \State $\vdots$
+    \State $h \leftarrow H^{i-1}_8$
+    \State $W_j \leftarrow M_j^i$ for $j=0,1,...,15$
+    \Comment The first 16 64-bit words of $W$ are from the message block
+    \For{$j = 16$ to $79$}
+    \Comment The remaining 64 are computed recursively
+      \State $W_i \leftarrow \sigma_1(W_{i-2}) + W_{i-7} + \sigma_0(W_{j-15}) + W_{j-16}$
+    \EndFor
+    \For{$j = 1$ to $79$}
+      \Comment Apply the compression function to compute the output hash
+      \State $T_1 \leftarrow h + \Sigma_1(e) + Ch(e,f,g) + K_j + W_j$
+      \State $T_2 \leftarrow \Sigma_0(a) + Maj(a,b,c)$
+      \State $h \leftarrow g$
+      \State $g \leftarrow f$
+      \State $f \leftarrow e$
+      \State $e \leftarrow d + T_1$
+      \State $d \leftarrow c$
+      \State $c \leftarrow b$
+      \State $b \leftarrow a$
+      \State $a \leftarrow T_1 + T_2$
+    \EndFor
+    \State $H_1^i \leftarrow a + H^{i-1}_1$
+    \Comment Assemble the new hash using the computed values
+    \State $\vdots$
+    \State $H_8^i \leftarrow a + H^{i-1}_8$
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
 \subsection{Unix Password Hashing}
 
 \subsection{Implementation}
@@ -29,6 +84,28 @@ implement SHA-512 since our end goal was to create a Unix password cracker.
 % implementation, especially any specific implementation strategies necessary for creating a functionally
 % correct design with good performance.
 \subsection{SHA-512}
+Before we created the password cracker, we implemented the SHA-512 core on its own, first to ensure
+correctness, and then as a way to optimize it in isolation. We implemented SHA-512 in software first,
+using the algorithm presented in the "Descriptions of SHA-256, SHA-384, and SHA-512" paper that is linked
+in the description of \ref{SHA512}. One of the key aspects of SHA-512 is that the message bytes need to
+be in big-endian order when they are processed by the compression function. In order to accomplish this
+in the software version, we used the \verb htobe64() function provided by Linux. This function will not
+synthesize, however, since it relies on architecture specific assembly instructions. We realized that
+this was not an issue since we could control exactly how the bytes of the message were sent/received from
+the host to the FPGA. The rest of the software implementation was synthesizeable. We decided to only
+implement the algorithm for hashing one message block on the FPGA, and put all of the pre-processing
+including splitting the message up into blocks on the host. The host the sent intermediate hash and a
+message block to the FPGA, which then performed the computation described in \ref{SHA512} and sent back
+the result hash.
+
+We made a number of optimizations to the baseline SHA-512 algorithm that we started with. One of the
+most important ones recognizing that the $i^{th}$ block of $W$ only relies on the 15 preceeding blocks.
+Since each block of $W$ is accessed sequentially, we can use a 16-block block array as a shfit register
+to store the values we need, instead of the entire 80 block array. Since the first 16 values in $W$ are
+just the current message chunk with no additional processing, we can simultaneously do the first 16
+rounds of the compression function and also fill $W$ in parallel, and then do the remaining $64$ rounds
+computing one new $W$ value each time. 
+
 \subsection{Unix Password Hashing}
 
 \subsection{Evaluation}
