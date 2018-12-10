@@ -131,3 +131,22 @@ computing one new $W$ value each time.
 % than another, why one design achieves a higher metric than another, or how you trade-off one metric
 % for another. Consider going into detail for one particular instance of your experiment and analyze how
 % it achieves the given results.
+\begin{table}[h]
+\begin{tabular}{@{}llllll@{}}
+\toprule
+Version                   & Latency (cycles) & BRAM Usage & DSP Usage & FF Usage & LUT Usage \\ \midrule
+baseline                  & 534              & 2\%         & 0\%        & 0\%       & 5\%    \\  
+baseline-pipeline-1       & 299              & 2\%         & 0\%        & 1\%       & 6\%    \\ 
+baseline-pipeline-2       & 235              & $<$1\%      & 0\%        & 9\%       & 20\%   \\
+shift-register            & 2373             & 2\%         & 0\%        & 1\%       & 9\%    \\
+shift-register-pipeline-1 & 91               & $<$1\%      & 0\%        & 3\%       & 12\%   \\
+final-opt                 & 88               & $<$1\%      & 0\%        & 4\%       & 7\%   \\ \bottomrule
+\end{tabular}
+\caption{Usage and cycle counts for different version of our SHA-512 implementation. The baseline
+version are nealy indentical to the software implementations, but they make use of optimization
+directives. The shift-register versions use the optimization described in the Techniques section to
+reduce the size of W and to remove the extraneous loops, in addition to making use of optimization
+directives}
+\label{table:shaversions}
+\end{table}
+
