@@ -31,5 +31,5 @@ vivado:
 	vivado_hls -f run.tcl
 
 clean:
-	rm -rf bnn *.dat *.prj *.log
+	rm -rf sha512 *.dat *.prj *.log
 	rm -rf zedboard_project* xillydemo.bit
