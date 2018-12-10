@@ -1,10 +1,15 @@
-\section{SHA}
-The Secure Hash Algorithm (SHA) is a hash function used in a wide range of applications, from checking
-file integrity to securely storing passwords. There are a number of versions of SHA which each generate
-different sized hashes. The original SHA algorithm, SHA-1, produced 160-bit hashes, while SHA-512,
-currently used by Linux to hash passwords, produces 512-bit hashes. For this project we decided to
-implement SHA-512 since our end goal was to create a Unix password cracker. 
- 
+\section{SHA512}
+The Secure Hash Algorithm (SHA) is a crytographic hash function used in a wide range of applications, from checking
+file integrity to securely storing passwords. Unlike AES or RSA, which are usually used for
+encryting messages, SHA hashes an arbitraty size message into a fixed-size irreversable hash.
+The original SHA algorithm, SHA-1, produced 160-bit hashes, while SHA-512
+produces 512-bit hashes. From these hashes it is nearly impossible to determine
+what the original message was.
+
+For this project we decided to implement SHA-512 on an FPGA.
+We then use it to accelerate unix password hashing and implemement
+a hardware accelerated Unix password cracker.
+
 \subsection{Techniques}
 % This section should provide a detailed description of the applications, algorithms, or
 % hardware architectures realized in this project. Think critically about the important items to mention
@@ -14,14 +19,23 @@ implement SHA-512 since our end goal was to create a Unix password cracker.
 % small examples, block diagrams, mathematical formulas, and other visualizations to help explain your
 % techniques. Do not include detailed information about your source code as your report should be at a
 % high level.
-\subsection{SHA-512}
-The core of SHA-512 is the compression function, which takes an intermediate hash value and a 1024-bit
-block of data and returns another hash value which is essentially the intermediate hash value encrypted
-with the message as the key. In addition to the compression function, there is a small amount of
-pre-processing done on the input data. First, the data is padded so that its size is a multiple of
-1024 bits. Then the data is split into blocks of 1024-bits. These are the messages that the compression
-function operates on.
+SHA-512 requires some basic preprocessing of the message before it is hashed. The first
+step is appending a single 1-bit to the buffer containing the message immediately after the message itself.
+In most practical cases the message is a integer number of bytes, so this step is just appending
+a single $0x80$ byte to the end. The final preprocessing step is appending the
+length of the message (measured in bits) to the end of the buffer.
+Since the algorithm operates on 1024-bit blocks, the buffer storing the preprocessed message
+must be an integer number of 1024-bit blocks. Thus, the last 128-bits of the last block
+is reserved for storing the message length in big-endian format. Zero padding is
+applied to the buffer (if needed) from after where the $0x80$ was appended until the last 16-bytes
+of the final block is reached, from which the message length is then written.
 
+
+The core of SHA-512 is the compression function, which takes an intermediate hash value and a single 1024-bit
+block of data and returns another hash value which is essentially the intermediate hash value encrypted
+with the message as the key. After the preprocessing step above,
+each block is then processed sequentually using the
+intermediate hash of the previous block.
 For the first block, the hash function is called with a fixed initial value. Then for each subsequent
 block, the intermediate hash passed into the compression function is the result of the previous run of the
 compresssion computation. That is, any given intermediate hash value directly depends on the preceeding
@@ -29,10 +43,10 @@ intermediate hash.
 
 The algorithm for the compression function is given in \ref{SHA512}. Let $H^i$ denote the current
 intermediate hash value, and $H^i_n$ be the $n^{th}$ 64-bit word in that hash. Let $M^i$ denote the
-$i^{th}$ 1024-bit chunk of the message, and let $M^i_j$ denote the $j^{th}$ 64-bit word in that chunk.
+$i^{th}$ 1024-bit chunk of the message, and let $M^i_j$ denote the $j^{th}$ 64-bit word in that chunk (treating it as big-endian).
 For our purposes, the exact definitions of $\Sigma_0, \Sigma_1, \sigma_0, \sigma_1, Maj(a,b,c),
 Ch(e,f,g)$ are not relevant. It is sufficient to understand that they are combinations of various bitwise
-operations including shifting.
+operations including shifting and XOR-ing.
 
 \begin{algorithm}
   \label{SHA512}
@@ -104,7 +118,7 @@ Since each block of $W$ is accessed sequentially, we can use a 16-block block ar
 to store the values we need, instead of the entire 80 block array. Since the first 16 values in $W$ are
 just the current message chunk with no additional processing, we can simultaneously do the first 16
 rounds of the compression function and also fill $W$ in parallel, and then do the remaining $64$ rounds
-computing one new $W$ value each time. 
+computing one new $W$ value each time.
 
 \subsection{Unix Password Hashing}
 
@@ -118,4 +132,3 @@ computing one new $W$ value each time.
 % than another, why one design achieves a higher metric than another, or how you trade-off one metric
 % for another. Consider going into detail for one particular instance of your experiment and analyze how
 % it achieves the given results.
-
