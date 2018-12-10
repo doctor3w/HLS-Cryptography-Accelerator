@@ -19,6 +19,7 @@ a brute-force hardware accelerated Unix password cracker.
 % small examples, block diagrams, mathematical formulas, and other visualizations to help explain your
 % techniques. Do not include detailed information about your source code as your report should be at a
 % high level.
+\subsubsection{SHA-512}
 SHA-512 requires some basic preprocessing of the message before it is hashed. The first
 step is appending a single 1-bit to the buffer containing the message immediately after the message itself.
 In most practical cases the message is a integer number of bytes, so this step is just appending
@@ -39,7 +40,7 @@ intermediate hash of the previous block.
 For the first block, the hash function is called with a fixed initial value. Then for each subsequent
 block, the intermediate hash passed into the compression function is the result of the previous run of the
 compresssion computation. That is, any given intermediate hash value directly depends on the preceeding
-intermediate hash.
+intermediate hash. The outputted hash is just the hash computed for the last block.
 
 The algorithm for the compression function is given in \ref{SHA512}. Let $H^i$ denote the current
 intermediate hash value, and $H^i_n$ be the $n^{th}$ 64-bit word in that hash. Let $M^i$ denote the
@@ -48,7 +49,7 @@ For our purposes, the exact definitions of $\Sigma_0, \Sigma_1, \sigma_0, \sigma
 Ch(e,f,g)$ are not relevant. It is sufficient to understand that they are combinations of various bitwise
 operations including shifting and XOR-ing.
 
-\begin{algorithm}
+\begin{algorithm}[!htb]
   \label{SHA512}
   \caption{SHA-512 Procedure for hashing a block. Adapted from \url{http://www.iwar.org.uk/comsec/resources/cipher/sha256-384-512.pdf}}
   \begin{algorithmic}
@@ -84,6 +85,44 @@ operations including shifting and XOR-ing.
   \end{algorithmic}
 \end{algorithm}
 
+\subsubsection{Unix Password Hashing}
+To test our hardware SHA-512 we were implementing, the group decided to create a
+Unix password cracker. Most unix systems store the paswords hashes in the
+``/etc/shadow'' file. Entires in this file have the format: ``[user]:\$[hash\_algorithm]\$salt\$hash''.
+Modern systems usually use SHA-512 for the underlying hash\_algorithm which is represented
+with a ``\$6\$''. The algorithm, for generating for converting a Unix password
+into a hash is shown in \ref{SHA512-unix}. This algorithm is normally
+accessed through the $crypt()$ function in $<unistd.h>$.
+
+\begin{algorithm}[!htb]
+  \label{SHA512-unix}
+  \caption{Unix SHA-512 $crypt()$ implementation. Adapted from \url{https://akkadia.org/drepper/SHA-crypt.txt}}
+  \begin{algorithmic}
+    \Procedure{crypt\_sha512()}{}
+    \State B = sha512(password + salt + password)
+    \State A = sha512(password + salt + B[:pwlen])
+    \State DP = sha512(password * pwlen)
+    \State DS = sha512(salt * (16 + A[0]))
+    \For{$j = 1$ to $4999$}
+      \State buf = []
+      \State buf.append(DP[:pwlen] if (i \% 2) else A)
+      \State buf.append(DS[:saltlen] if (i \% 3) else ‘’)
+      \State buf.append(DP[:pwlen] if (i \% 7) else ‘’)
+      \State buf.append(DP[:pwlen] if (i \% 2 == 0) else A)
+      \State A = sha512(buf)
+    \EndFor
+    \State return base64Encode(A)
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+The key takeaway from the SHA-512 Unix password hashing algorithm is
+that it requires computing $5000$ SHA-512 hashes of variable length messages,
+where each hash is dependent on the previous one. It is extremely slow
+and expensive to compute. When testing through the $crypt()$ function
+on the zedboard's ARM core, it was only able to hash roughly 10 passwords
+per second.
+
 \subsection{Implementation}
 % This section describe how you implemented your designs. For example, what
 % programming languages did you use? Did you take advantage of any third-party libraries? Is your
@@ -96,30 +135,70 @@ operations including shifting and XOR-ing.
 % implementation, especially any specific implementation strategies necessary for creating a functionally
 % correct design with good performance.
 \subsubsection{SHA-512}
-
 Before we created the password cracker, we implemented the SHA-512 core on its own, first to ensure
 correctness, and then as a way to optimize it in isolation. We implemented SHA-512 in software first,
-using the algorithm presented in the "Descriptions of SHA-256, SHA-384, and SHA-512" paper that is linked
-in the description of \ref{SHA512}. One of the key aspects of SHA-512 is that the message bytes need to
-be in big-endian order when they are processed by the compression function. In order to accomplish this
-in the software version, we used the \verb htobe64() function provided by Linux. This function will not
-synthesize, however, since it relies on architecture specific assembly instructions. We realized that
-this was not an issue since we could control exactly how the bytes of the message were sent/received from
-the host to the FPGA. The rest of the software implementation was synthesizeable. We decided to only
-implement the algorithm for hashing one message block on the FPGA, and put all of the pre-processing
-including splitting the message up into blocks on the host. The host the sent intermediate hash and a
-message block to the FPGA, which then performed the computation described in \ref{SHA512} and sent back
-the result hash.
+using the algorithm presented in the``Descriptions of SHA-256, SHA-384, and SHA-512'' paper that is linked
+in the description of \ref{SHA512}. We then modified it as needed to make it
+sythesizable. Ultilmately, we ended up with \emph{SHA512Hasher}, a C++ class that exposed the following methods:
+\begin{verbatim}
+  void reset(); // Reset the state of the hasher
+  void update(const uint8_t *msgp, uint8_t len); // Append msg to the hasher
+  void byte_digest(uint8_t buf[64]); // Output the SHA-512 hash
+\end{verbatim}
 
-We made a number of optimizations to the baseline SHA-512 algorithm that we started with. One of the
-most important ones recognizing that the $i^{th}$ block of $W$ only relies on the 15 preceeding blocks.
-Since each block of $W$ is accessed sequentially, we can use a 16-block block array as a shfit register
+Internally, the contained a length 128 byte buffer (to store the current block)
+as well the current intermediate hash,
+which was initilized to the inital SHA-512 intermediate value. This buffer would be filled as
+\emph{update()} was repeadedly called on it. Whenever the buffer filled up, the class would
+automatically (in the \emph{update()} call) run the SHA-512 algorithm for the current block
+and compute the next intermediate hash value based on this current block and the current intermediate hash.
+This was implemented as a private method called \emph{hashBlock()}.
+When \emph{byte\_digest()} was called, the hasher would do the final preprocessing steps for the last block,
+and compute the final SHA-512 hash. A \emph{reset()} method was also provided to allow the same hasher
+instance to be reused to compute further hashes.
+
+
+This implementaiton works extremely well for an HLS FPGA implementation, because
+the entire message does not have to be stored. Only a temporary 128 byte buffer
+to store the current block, and a 64-byte buffer to store the intermediate hash for the previous block is needed.
+Furthermore, by doing this, it allows the size of the message to be variable and be unknown at compile time.
+This makes the implementation extremely general and thus can easily be adopted to
+other projects. This generalness was infact needed later to support variable length passwords with the Unix password
+hasher that was implemented later.
+
+Since the slow part of the algorithm was was performing the 80 SHA-512 rounds (\ref{SHA512}),
+optimizing this \emph{hashBlock()} method was the first priority. Initally, its
+latency was $534$ cycles. However, a number of optimizations was applied that
+brought the latency down to $88$ cycles.
+
+One of the most important optimizations
+involved recognizing that the $i^{th}$ value of $W$ (\ref{SHA512}) only relies on the 15 preceeding $W$ values.
+Since each block of $W$ is accessed sequentially, we can use a 16-block block array as a shift register
 to store the values we need, instead of the entire 80 block array. Since the first 16 values in $W$ are
 just the current message chunk with no additional processing, we can simultaneously do the first 16
 rounds of the compression function and also fill $W$ in parallel, and then do the remaining $64$ rounds
-computing one new $W$ value each time.
+computing one new $W$ value each time. We fully partitioned this $W$ array, and removed the need
+to read/write from a BRAM each cycle. Furthermore, by implementing $W$ with a shift register,
+each loop iteration would be reading and writing to the same registers every time,
+as opposed to a different BRAM address.
+
+The final set of optimizations invovled partitioning the 128 byte block buffer
+cyclically by a factor of 8. This allowed the first length 16 loop discussed
+in the previous paragraph, to initlize each $W_i$ in a single cycle. Next, the
+intermediate value hash array was fully partitioned so that all $a \ldots h$ could
+be initlized at the beggening of \emph{hashBlock()} as well as updated
+at the end ind a single cycle. Finally both the 16 and 64 iteration loop were
+pipelined, and due to the previous optimizations, allowed them to be II1.
+
+
+At this point \emph{hashBlock()} had a latency of 88 cycles, which was quite good
+considering the SHA-512 algorithm itself consists of 80 iterations,
+where each iteration was dependent on the previous one. Thus, after these optimizations,
+there was practically no further parallelism that could be exploited in \emph{hashBlock()}.
+
 
 \subsubsection{Unix Password Hashing}
+
 
 \subsection{Evaluation}
 % Students should describe the experimental setup used to evaluate their design. Students
@@ -135,8 +214,8 @@ computing one new $W$ value each time.
 \begin{tabular}{@{}llllll@{}}
 \toprule
 Version                   & Latency (cycles) & BRAM Usage & DSP Usage & FF Usage & LUT Usage \\ \midrule
-baseline                  & 534              & 2\%         & 0\%        & 0\%       & 5\%    \\  
-baseline-pipeline-1       & 299              & 2\%         & 0\%        & 1\%       & 6\%    \\ 
+baseline                  & 534              & 2\%         & 0\%        & 0\%       & 5\%    \\
+baseline-pipeline-1       & 299              & 2\%         & 0\%        & 1\%       & 6\%    \\
 baseline-pipeline-2       & 235              & $<$1\%      & 0\%        & 9\%       & 20\%   \\
 shift-register            & 2373             & 2\%         & 0\%        & 1\%       & 9\%    \\
 shift-register-pipeline-1 & 91               & $<$1\%      & 0\%        & 3\%       & 12\%   \\
@@ -149,4 +228,3 @@ reduce the size of W and to remove the extraneous loops, in addition to making u
 directives}
 \label{table:shaversions}
 \end{table}
-
