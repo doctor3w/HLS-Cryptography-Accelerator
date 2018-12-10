@@ -168,7 +168,7 @@ hasher that was implemented later.
 
 Since the slow part of the algorithm was was performing the 80 SHA-512 rounds (\ref{SHA512}),
 optimizing this \emph{hashBlock()} method was the first priority. Initially, its
-latency was $534$ cycles. However, a number of optimizations was applied that
+latency was $534$ cycles. However, a number of optimizations were applied that
 eventually brought the latency down to $88$ cycles.
 
 One of the most important optimizations
@@ -193,7 +193,7 @@ pipelined, and due to the previous optimizations, allowed them to be II1.
 
 At this point \emph{hashBlock()} had a latency of 88 cycles, which was quite good
 considering the SHA-512 algorithm itself consists of 80 iterations,
-where each iteration was dependent on the previous one. Thus, after these optimizations,
+where each iteration is dependent on the previous one. Thus, after these optimizations,
 there was practically no further parallelism that could be exploited in \emph{hashBlock()}.
 
 
