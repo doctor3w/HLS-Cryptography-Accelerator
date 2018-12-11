@@ -233,7 +233,7 @@ directives.}
   implementations of the password hashing algorithm. The speedups are given relative to the ZedBoard ARM
   CPU. The Price/Performance column is the ratio of the cost of the CPU to the number of hashes they computed
   per second. Prices are from manufacturer's recommended pricing. The Intel CPU cost \$1750 while the
-  entire Zedboard (ARM CPU and FPGA) cost \$300. The Power/Performance column is the ratio of the average
+  entire ZedBoard (ARM CPU and FPGA) cost \$300. The Power/Performance column is the ratio of the average
   power consumption to the number of hashes they computed per second. The average power consumption
   information was taken from the manufacturers' websites. The Intel CPU has a TDP of 120W, and Xilinx 
   claims the ARM CPU and FPGA both have sub-watt TDPs of approximately 100mW. We divided the TDP by the
@@ -242,7 +242,7 @@ directives.}
 \end{table}
 
 In order to evaluate our password hasher, we tested it on three different platforms: the Intel CPU on an
-ecelinux server, the ARM CPU on a Zedboard, and the Zedboard FPGA. For the evaluation we used a host program
+ecelinux server, the ARM CPU on a ZedBoard, and the ZedBoard FPGA. For the evaluation we used a host program
 that simulated using the password hasher for a dictionary attack. The host program reads passwords from
 a text file of commonly used passwords, and then sends the password as plaintext to the FPGA, which
 then sends back the hash of the password as a base64 number represented with ASCII characters. For
