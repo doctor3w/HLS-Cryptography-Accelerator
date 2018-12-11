@@ -2,7 +2,7 @@
 The Secure Hash Algorithm (SHA) is a cryptographic hash function used in a wide range of applications, from checking
 file integrity to securely storing passwords.
 At a high level, SHA is a function from an arbitrary size message into a fixed-size hash.
-Furthermore, the function is very difficult to invert: given a hash, determining the original 
+Furthermore, the function is very difficult to invert: given a hash, determining the original
 message is nearly impossible.
 The original SHA algorithm, SHA-1, produced 160-bit hashes, while SHA-512
 produces 512-bit hashes.
@@ -36,7 +36,7 @@ The algorithm for the compression function is given in \ref{SHA512}. Let $H^i$ d
 intermediate hash value, and $H^i_n$ be the $n^{\text{th}}$ 64-bit word in that hash. Let $M^i$ denote the
 $i^{\text{th}}$ 1024-bit chunk of the message, and let $M^i_j$ denote the $j^{\text{th}}$ 64-bit word in that chunk (treating it as big-endian).
 For our purposes, the exact definitions of $\Sigma_0, \Sigma_1, \sigma_0, \sigma_1, Maj(a,b,c),
-Ch(e,f,g)$ are not relevant. It is sufficient to understand that they are various bit twiddling functions involving 
+Ch(e,f,g)$ are not relevant. It is sufficient to understand that they are various bit twiddling functions involving
 many shift and XOR operations.
 
 \begin{algorithm}[!htb]
@@ -76,7 +76,7 @@ many shift and XOR operations.
 \end{algorithm}
 
 \subsubsection{Unix Password Hashing}
-Most unix systems store the passwords hashes in the "/etc/shadow" file. Entries in this file have the format: "[user]:\$[hash_algorithm]\$salt\$hash".
+Most unix systems store the passwords hashes in the "/etc/shadow" file. Entries in this file have the format: "[user]:$[hash_algorithm]$salt$hash".
 Modern systems usually use SHA-512 for the underlying "hash_algorithm" which is represented
 with a "6". The algorithm for hashing a Unix password is shown in \ref{SHA512-unix}. This algorithm is normally
 accessed through the "crypt()" function in "<unistd.h>".
@@ -120,7 +120,7 @@ It is extremely slow operation; the ZedBoard's ARM core can only hash about 10 p
 % correct design with good performance.
 \subsubsection{SHA-512}
 We implemented SHA-512 in software first, using the algorithm presented in the ``Descriptions of SHA-256, SHA-384, and SHA-512'' (see algorithm \ref{SHA512})
-We then modified it as needed to make it synthesizable. Ultimately, we ended up with \emph{SHA512Hasher}, a C++ class that exposed the following methods:
+We then modified it as needed to make it synthesizable. Ultimately, we ended up with \emph{SHA512Hasher}, a C++ class that exposes the following methods:
 \begin{verbatim}
   void reset(); // Reset the state of the hasher
   void update(const uint8_t *msgp, uint8_t len); // Append msg to the hasher
@@ -163,7 +163,7 @@ cyclically by a factor of 8. This allowed the first length 16 loop discussed
 in the previous paragraph to initialize each $W_i$ in a single cycle. Next, the
 intermediate value hash array was partially partitioned so that all $a \ldots h$ could
 be initialized at the beginning of "hashBlock()" as well as updated
-at the end in a single cycle. Finally both the 16 and 64 iteration loop were
+at the end in a single cycle. Finally, both the 16 and 64 iteration loop were
 pipelined, and due to the previous optimizations, allowed them to have an II of 1.
 
 At this point "hashBlock()" had a latency of 88 cycles, which was quite good
@@ -235,7 +235,7 @@ directives.}
   per second. Prices are from manufacturer's recommended pricing. The Intel CPU cost \$1750 while the
   entire Zedboard (ARM CPU and FPGA) cost \$300. The Power/Performance column is the ratio of the average
   power consumption to the number of hashes they computed per second. The average power consumption
-  information was taken from the manufacturers' websites. The Intel CPU has a TDP of 120W, and Xilinx 
+  information was taken from the manufacturers' websites. The Intel CPU has a TDP of 120W, and Xilinx
   claims the ARM CPU and FPGA both have sub-watt TDPs of approximately 100mW. We divided the TDP by the
   number of cores for the Intel and ARM CPUs, and are assuming a linear speedup with multiple cores.}
 \label{table:hashresults}
@@ -246,7 +246,7 @@ ecelinux server, the ARM CPU on a Zedboard, and the Zedboard FPGA. For the evalu
 that simulated using the password hasher for a dictionary attack. The host program reads passwords from
 a text file of commonly used passwords, and then sends the password as plaintext to the FPGA, which
 then sends back the hash of the password as a base64 number represented with ASCII characters. For
-evaluating the performance of the program on the ecelinux and ZedBoard CPUs, we instead used the 
+evaluating the performance of the program on the ecelinux and ZedBoard CPUs, we instead used the
 "crypt()" from "<unistd.h>" function provided by the operating system to generate the hashes. On
 ecelinux, we found that our test program was able to hash ~230 passwords per second. While this may seem
 low, remember that each call to "crypt()" is computationally expensive since it performs 5000 rounds of
