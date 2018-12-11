@@ -1,0 +1,14 @@
+#! /bin/bash
+
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+cd "$DIR"
+
+DIRS="rsa sha aes cracker"
+OUT="submission.zip"
+rm -rf $OUT
+git clean -xdf $DIRS
+zip -r $OUT $DIRS
+md5sum $OUT
+
