@@ -1,13 +1,13 @@
 \section{SHA512}
-The Secure Hash Algorithm (SHA) is a crytographic hash function used in a wide range of applications, from checking
-file integrity to securely storing passwords. Unlike AES or RSA, which are usually used for
-encrypting messages, SHA hashes an arbitrary size message into a fixed-size irreversible hash.
+The Secure Hash Algorithm (SHA) is a cryptographic hash function used in a wide range of applications, from checking
+file integrity to securely storing passwords.
+At a high level, SHA is a function from an arbitrary size message into a fixed-size hash.
+Furthermore, the function is very difficult to invert: given a hash, determining the original 
+message is nearly impossible.
 The original SHA algorithm, SHA-1, produced 160-bit hashes, while SHA-512
-produces 512-bit hashes. From these hashes it is nearly impossible to determine
-what the original message was.
+produces 512-bit hashes.
 
-For this project we decided to implement SHA-512 on an FPGA.
-We then use it to accelerate Unix password hashing and implement
+We implemented SHA-512 on an FPGA, used it to accelerate Unix password hashing, and then implemented
 a simple brute-force hardware accelerated Unix password cracker.
 
 \subsection{Techniques}
@@ -20,33 +20,24 @@ a simple brute-force hardware accelerated Unix password cracker.
 % techniques. Do not include detailed information about your source code as your report should be at a
 % high level.
 \subsubsection{SHA-512}
-SHA-512 requires some basic preprocessing of the message before it is hashed. The first
-step is appending a single 1-bit to the buffer containing the message immediately after the message itself.
-In most practical cases the message is a integer number of bytes, so this step is just appending
-a single $0x80$ byte to the end. The final preprocessing step is appending the
-length of the message (measured in bits) to the end of the buffer.
-Since the algorithm operates on 1024-bit blocks, the buffer storing the preprocessed message
-must be an integer number of 1024-bit blocks. Thus, the last 128-bits of the last block
-is reserved for storing the message length in big-endian format. Zero padding is
-applied to the buffer (if needed) from after where the $0x80$ was appended until the last 16-bytes
-of the final block is reached, from which the message length is then written.
-
 The core of SHA-512 is the compression function, which takes an intermediate hash value and a single 1024-bit
-block of data and returns another hash value which is essentially the intermediate hash value encrypted
-with the message as the key. After the preprocessing step above,
-each block is then processed sequentially using the
-intermediate hash of the previous block.
+block of data and returns another hash value.
 For the first block, the hash function is called with a fixed initial value. Then for each subsequent
 block, the intermediate hash passed into the compression function is the result of the previous run of the
 compression computation. That is, any given intermediate hash value directly depends on the preceding
-intermediate hash. The outputted hash is just the hash computed for the last block.
+intermediate hash.
+
+At the end of the message, the algorithm appends a single "0x80" byte. The last 128 bits of the final block
+are set to the length of the message in bits, as a 128 bit big-endian number. The space between the "0x80" and
+the start of the length is zero-padded.
+The final hash is just the hash computed for the last block.
 
 The algorithm for the compression function is given in \ref{SHA512}. Let $H^i$ denote the current
-intermediate hash value, and $H^i_n$ be the $n^{th}$ 64-bit word in that hash. Let $M^i$ denote the
-$i^{th}$ 1024-bit chunk of the message, and let $M^i_j$ denote the $j^{th}$ 64-bit word in that chunk (treating it as big-endian).
+intermediate hash value, and $H^i_n$ be the $n^{\text{th}}$ 64-bit word in that hash. Let $M^i$ denote the
+$i^{\text{th}}$ 1024-bit chunk of the message, and let $M^i_j$ denote the $j^{\text{th}}$ 64-bit word in that chunk (treating it as big-endian).
 For our purposes, the exact definitions of $\Sigma_0, \Sigma_1, \sigma_0, \sigma_1, Maj(a,b,c),
-Ch(e,f,g)$ are not relevant. It is sufficient to understand that they are combinations of various bitwise
-operations including shifting and XOR-ing.
+Ch(e,f,g)$ are not relevant. It is sufficient to understand that they are various bit twiddling functions involving 
+many shift and XOR operations.
 
 \begin{algorithm}[!htb]
   \label{SHA512}
@@ -85,13 +76,10 @@ operations including shifting and XOR-ing.
 \end{algorithm}
 
 \subsubsection{Unix Password Hashing}
-To test our hardware SHA-512 we were implementing, the group decided to create a
-Unix password cracker. Most unix systems store the passwords hashes in the
-``/etc/shadow'' file. Entries in this file have the format: ``[user]:\$[hash\_algorithm]\$salt\$hash''.
-Modern systems usually use SHA-512 for the underlying hash\_algorithm which is represented
-with a ``\$6\$''. The algorithm, for generating for converting a Unix password
-into a hash is shown in \ref{SHA512-unix}. This algorithm is normally
-accessed through the $crypt()$ function in $<unistd.h>$.
+Most unix systems store the passwords hashes in the "/etc/shadow" file. Entries in this file have the format: "[user]:\$[hash_algorithm]\$salt\$hash".
+Modern systems usually use SHA-512 for the underlying "hash_algorithm" which is represented
+with a "6". The algorithm for hashing a Unix password is shown in \ref{SHA512-unix}. This algorithm is normally
+accessed through the "crypt()" function in "<unistd.h>".
 
 \begin{algorithm}[!htb]
   \label{SHA512-unix}
@@ -115,12 +103,9 @@ accessed through the $crypt()$ function in $<unistd.h>$.
   \end{algorithmic}
 \end{algorithm}
 
-The key takeaway from the SHA-512 Unix password hashing algorithm is
-that it requires computing $5000$ SHA-512 hashes of variable length messages,
-where each hash is dependent on the previous one. It is extremely slow
-and expensive operation to compute. When testing through the $crypt()$ function
-on the Zedboard's ARM core, it was only able to hash roughly 10 passwords
-per second.
+Note that the SHA-512 Unix password hashing algorithm requires computing 5000
+SHA-512 hashes of variable length messages, where each hash is dependent on the previous one.
+It is extremely slow operation; the ZedBoard's ARM core can only hash about 10 passwords per second.
 
 \subsection{Implementation}
 % This section describe how you implemented your designs. For example, what
@@ -134,11 +119,8 @@ per second.
 % implementation, especially any specific implementation strategies necessary for creating a functionally
 % correct design with good performance.
 \subsubsection{SHA-512}
-Before we created the password cracker, we implemented the SHA-512 core on its own, first to ensure
-correctness, and then as a way to optimize it in isolation. We implemented SHA-512 in software first,
-using the algorithm presented in the``Descriptions of SHA-256, SHA-384, and SHA-512'' paper that is linked
-in the description of \ref{SHA512}. We then modified it as needed to make it
-synthesizable. Ultimately, we ended up with \emph{SHA512Hasher}, a C++ class that exposed the following methods:
+We implemented SHA-512 in software first, using the algorithm presented in the ``Descriptions of SHA-256, SHA-384, and SHA-512'' (see algorithm \ref{SHA512})
+We then modified it as needed to make it synthesizable. Ultimately, we ended up with \emph{SHA512Hasher}, a C++ class that exposed the following methods:
 \begin{verbatim}
   void reset(); // Reset the state of the hasher
   void update(const uint8_t *msgp, uint8_t len); // Append msg to the hasher
@@ -148,29 +130,25 @@ synthesizable. Ultimately, we ended up with \emph{SHA512Hasher}, a C++ class tha
 Internally, the class contains a length 128 byte buffer (to store the current block)
 as well the current intermediate hash,
 which is initialized to the initial SHA-512 intermediate value. This buffer is filled as
-\emph{update()} is repeatedly called on it. Whenever the buffer fills up, the class
-automatically (in the \emph{update()} call) runs the SHA-512 algorithm for the buffered block
+"update()" is repeatedly called on it. Whenever the buffer fills up, the class
+automatically (in the "update()" call) runs the SHA-512 algorithm for the buffered block
 and computes the next intermediate hash value based on this current block and the stored intermediate hash hash of previous block.
-This was implemented as a private method called \emph{hashBlock()}.
-When \emph{byte\_digest()} was called, the hasher would do the final preprocessing steps for the last block,
-and compute the final SHA-512 hash. A \emph{reset()} method was also provided to allow the same hasher
+This was implemented as a private method called "hashBlock()".
+When "byte_digest()" is called, the hasher does the final steps for the last block,
+and computes the final SHA-512 hash. A "reset()" method was also provided to allow the same hasher
 instance to be reused to compute further hashes.
 
 This implementation works extremely well for an HLS FPGA implementation, because
 the entire message does not have to be stored. Only a temporary 128 byte buffer
 to store the current block, and a 64-byte buffer to store the intermediate hash for the previous block is needed.
 Furthermore, by doing this, it allows the size of the message to be variable and be unknown at compile time.
-This makes the implementation extremely general and thus can easily be adopted to
-other projects. This generality was in fact needed later to support variable length passwords with the Unix password
-hasher that was implemented later.
 
-Since the slow part of the algorithm was was performing the 80 SHA-512 rounds (\ref{SHA512}),
-optimizing this \emph{hashBlock()} method was the first priority. Initially, its
-latency was $534$ cycles. However, a number of optimizations were applied that
-eventually brought the latency down to $88$ cycles.
+Since the slow part of the algorithm was was performing the 80 SHA-512 rounds,
+optimizing this "hashBlock()" method was the first priority. Initially, its
+latency was 534 cycles. However, the optimized version was only 88 cycles.
 
 One of the most important optimizations
-involved recognizing that the $i^{th}$ value of $W$ (\ref{SHA512}) only relies on the 15 preceding $W$ values.
+involved recognizing that the $i^{\text{th}}$ value of $W$ (algorithm \ref{SHA512}) only relies on the 15 preceding $W$ values.
 Since each block of $W$ is accessed sequentially, we can use a 16-block block array as a shift register
 to store the values we need, instead of the entire 80 block array. Since the first 16 values in $W$ are
 just the current message chunk with no additional processing, we can simultaneously do the first 16
@@ -184,31 +162,30 @@ The final set of optimizations involved partitioning the 128 byte block buffer
 cyclically by a factor of 8. This allowed the first length 16 loop discussed
 in the previous paragraph to initialize each $W_i$ in a single cycle. Next, the
 intermediate value hash array was partially partitioned so that all $a \ldots h$ could
-be initialized at the beginning of \emph{hashBlock()} as well as updated
+be initialized at the beginning of "hashBlock()" as well as updated
 at the end in a single cycle. Finally both the 16 and 64 iteration loop were
-pipelined, and due to the previous optimizations, allowed them to be II1.
+pipelined, and due to the previous optimizations, allowed them to have an II of 1.
 
-At this point \emph{hashBlock()} had a latency of 88 cycles, which was quite good
+At this point "hashBlock()" had a latency of 88 cycles, which was quite good
 considering the SHA-512 algorithm itself consists of 80 iterations,
 where each iteration is dependent on the previous one. Thus, after these optimizations,
-there was practically no further parallelism that could be exploited in \emph{hashBlock()}.
+there was practically no further parallelism that could be exploited.
 
 \subsubsection{Unix Password Hashing}
-The entirety of the SHA-512 portion of the $crypt()$ function was implemented
-on the FPGA in $unix\_cracker.cpp$. The implementation was relatively straight
-forward, and closely resembles the pseudo code in \ref{SHA512-unix}.
+The entirety of the SHA-512 portion of the "crypt()" function was implemented
+on the FPGA in "unix_cracker.cpp". The implementation was relatively straight
+forward, and closely resembles the pseudo code in algorithm \ref{SHA512-unix}.
 Due to the lack of remaining resources on the Zynq's FPGA, only minor
 optimizations were applied to this portion of the implementation.
 Additionally, the vast majority of the compute time was spent in the
-\emph{SHA512Hasher} methods, so resources were conserved and instead used to enable the
-\emph{SHA512Hasher} optimizations explained previously.
+"SHA512Hasher" methods, so resources were conserved and instead used to enable the
+"SHA512Hasher" optimizations explained previously.
 
-A basic host program was written, \emph{zedboard/host.cpp}, which sends a
-salt and password (null-terminator seperated) over the Xillybus. The FPGA then
-computes the hash using the $unix\_cracker.cpp$ hash implementation
-and sends the resulting hash back. The host program is responsible for
+A basic host program was written, "zedboard/host.cpp", which sends a
+salt and password (null-terminator separated) over the Xillybus. The FPGA then
+sends the resulting hash back. The host program is responsible for
 generating password guesses, sending to the FPGA, then comparing the returned
-result against the known hash extracted from the ``etc/shadow'' file.
+result against the known hash extracted from the "etc/shadow" file.
 If these two hashes match, then the password tested was correct.
 
 \subsection{Evaluation}
@@ -222,6 +199,7 @@ If these two hashes match, then the password tested was correct.
 % for another. Consider going into detail for one particular instance of your experiment and analyze how
 % it achieves the given results.
 \begin{table}[h]
+\centering
 \begin{tabular}{@{}llllll@{}}
 \toprule
 Version                   & Latency (cycles) & BRAM Usage & DSP Usage & FF Usage & LUT Usage \\ \midrule
@@ -233,14 +211,15 @@ shift-register-pipeline-1 & 91               & $<$1\%      & 0\%        & 3\%   
 final-opt                 & 88               & $<$1\%      & 0\%        & 4\%       & 7\%   \\ \bottomrule
 \end{tabular}
 \caption{Usage and cycle counts for different version of our SHA-512 implementation. The baseline
-version are nearly identical to the software implementations, but they make use of optimization
+versions are nearly identical to the software implementations, but they make use of optimization
 directives. The shift-register versions use the optimization described in the Techniques section to
-reduce the size of W and to remove the extraneous loops, in addition to making use of optimization
-directives}
+reduce the size of $W$ and to remove the extraneous loops, in addition to making use of optimization
+directives.}
 \label{table:shausage}
 \end{table}
 
 \begin{table}[h]
+\centering
 \begin{tabular}{@{}lllllll@{}}
 \toprule
   Version   & Average Time (s) & Hash/sec & Speedup & Price/Performance & Power/Performance \\ \midrule
@@ -249,14 +228,14 @@ directives}
   fpga-opt1 & 0.0300           & 33.3     & 5.2     & 9.90  & 0.00300                       \\
   zedboard  & 0.104            & 9.62     & 1       & 31.2  & 0.0103                        \\ \bottomrule
 \end{tabular}
-\caption {Results for the Unix Password Hasher. The ecelinux and zedboard versions were idential software
+\caption {Results for the Unix Password Hasher. The ecelinux and ZedBoard versions were identical software
   implementations, compiled with -O3. The fpga-opt1 and fpga-opt2 were differently optimized FPGA
-  implementations of the password hashing algorithm. The speedups are given relative to the Zedboard ARM
+  implementations of the password hashing algorithm. The speedups are given relative to the ZedBoard ARM
   CPU. The Price/Performance column is the ratio of the cost of the CPU to the number of hashes they computed
   per second. Prices are from manufacturer's recommended pricing. The Intel CPU cost \$1750 while the
   entire Zedboard (ARM CPU and FPGA) cost \$300. The Power/Performance column is the ratio of the average
   power consumption to the number of hashes they computed per second. The average power consumption
-  information was taken from the manufacturers' websites. The Intel CPU has a TDP of 120W, and Xilinix
+  information was taken from the manufacturers' websites. The Intel CPU has a TDP of 120W, and Xilinx 
   claims the ARM CPU and FPGA both have sub-watt TDPs of approximately 100mW.}
 \label{table:hashresults}
 \end{table}
@@ -266,20 +245,20 @@ ecelinux server, the ARM CPU on a Zedboard, and the Zedboard FPGA. For the evalu
 that simulated using the password hasher for a dictionary attack. The host program reads passwords from
 a text file of commonly used passwords, and then sends the password as plaintext to the FPGA, which
 then sends back the hash of the password as a base64 number represented with ASCII characters. For
-evaluating the performance of the program on the ecelinux and Zedboard CPUs, we instead used the 
-$crypt()$ from $<unistd.h>$ function provided by the operating system to generate the hashes. On
+evaluating the performance of the program on the ecelinux and ZedBoard CPUs, we instead used the 
+"crypt()" from "<unistd.h>" function provided by the operating system to generate the hashes. On
 ecelinux, we found that our test program was able to hash ~230 passwords per second. While this may seem
-low, remember that each call to $crypt()$ is computationally expensive since it performs 5000 rounds of
-SHA-512. On the Zedboard's ARM CPU, we could only perform ~10 hashes per second. The difference in speed
-is surprising, given that the Zedboard CPU only operates at half the clock speed of the ecelinux CPU, and
-that $crypt()$ is not parallelizable, so it doesn't benefit from the larger number of cores available on
+low, remember that each call to "crypt()" is computationally expensive since it performs 5000 rounds of
+SHA-512. On the ZedBoard's ARM CPU, we could only perform ~10 hashes per second. The difference in speed
+is surprising, given that the ZedBoard CPU only operates at half the clock speed of the ecelinux CPU, and
+that "crypt()" is not parallelizable, so it doesn't benefit from the larger number of cores available on
 ecelinux. Most likely it is due to differences in the implementation, the x86 version might use special
 instructions that are not in the ARM ISA to speed up the computation. The optimized version of the FPGA,
 described in the previous section, was able to achieve 50 hashes per second, which is over a 5x
-improvement over the Zedboard CPU. Even though the Intel CPU predictably beats the FPGA in terms of raw
+improvement over the ZedBoard CPU. Even though the Intel CPU beats the FPGA in terms of raw
 power, it loses when it comes to the ratio of price/performance and power/performance. The most optimized
 version of the FPGA hasher achieves a price-to-performance ratio of 5.99, while the Intel CPU's ratio is
 7.64 (lower is better). The most striking difference is in the power-to-performance scores. The Intel CPU
-has a ratio of 0.524, while the FPGA achieves .00200, \textit{over two orders of magnitude lower} than the
+has a ratio of 0.524, while the FPGA achieves .00200, \emph{over two orders of magnitude lower} than the
 Intel CPU. This our makes the FPGA-based implementation the clear choice for embedded applications, where
 power consumption is a major concern.
