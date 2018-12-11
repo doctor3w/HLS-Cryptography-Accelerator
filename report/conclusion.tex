@@ -7,23 +7,20 @@
 % some suggestions on how the course staff can improve the project experience for future offerings of this
 % class.
 
-In this paper we implemented three separate FPGA-accelerated cryptography projects as an exploration uses
-for FPGAs in the cryptography space. The first, algorithm, AES, a symmetric key cryptography algorithm,
-was something that we saw as a potential good candidate for FPGA acceleration, since you can encrypt any
-number of blocks in parallel. In practice, we saw that our FPGA-accelerated implementation beat the
-Zedboard ARM CPU outright. While it did not beat the ecelinux Intel CPU in raw performance, it did
-outperform it in other metrics, namely price-to-performance and power-to-performance ratios. Our second
-algorithm, RSA, is a public-key cryptosystem. We were unsure whether RSA would gain much benefit from an
-FPGA since it almost no parallelism. Our doubts were proved correct, since our FPGA implementation did
-not beat the optimized software version on any platform. The difference between it and the Intel CPU in
-the ecelinux servers was enough to offset the FPGA's advantage in terms of price and power. One important
-note is that in addition to its lack of parallelism, RSA is also not a good candidate for acceleration
-because it is most often used not to encrypt large amounts of data, but to encrypt keys to allow a
-symmetric algorithm, like AES to securely encrypt large amounts of data. So the potential speedup gained
-by accelerating RSA is fairly small. Our last project was to implement a Unix Password Cracker based
-around SHA-512. The process for hashing Linux passwords is computationally expensive and centers on 5000
-rounds of SHA-512. We offloaded this entire computation onto the FPGA, and then used a host program to
-send commonly used passwords to the FPGA to hash to simulate a dictionary-style attack. Our
-implementation beat the Zedboard ARM CPU and lost to the ecelinux Intel CPU, but like AES, our FPGA-based
+In this paper we implemented three separate FPGA-accelerated cryptography projects
+The first algorithm, AES, a symmetric key cryptography algorithm, was a good candidate for FPGA acceleration,
+since you can encrypt any number of blocks in parallel.
+In practice, we saw that our FPGA-accelerated implementation beat the ZedBoard ARM CPU outright.
+While it did not beat the ecelinux Intel CPU in raw performance, it did outperform it in price-to-performance and power-to-performance ratios.
+Our second algorithm, RSA, is a public-key cryptosystem.
+It was not amenable to an FPGA implementation, as there was little parallelism to exploit.
+It was far slower than an optimized software version, even on the ZedBoard.
+However, RSA is also not a good candidate for acceleration because it is most often used not to encrypt large amounts of data, but to encrypt keys to allow a
+symmetric algorithm, like AES, to encrypt large amounts of data.
+Thus, the potential speedup gained by accelerating RSA is fairly small.
+Our last project was to implement a Unix Password Cracker based around SHA-512.
+The process for hashing Linux passwords is computationally expensive and centers on 5000 rounds of SHA-512.
+We offloaded this entire computation onto the FPGA, and then used a host program to send commonly used passwords to the FPGA to hash in a dictionary-style attack.
+Our implementation beat the ZedBoard ARM CPU and lost to the ecelinux Intel CPU, but like AES, our FPGA-based
 design is significantly better than the other platforms tested in terms of price-to-performance and
 power-to-performance.
