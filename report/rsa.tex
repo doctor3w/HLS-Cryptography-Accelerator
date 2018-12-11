@@ -30,20 +30,30 @@ For this project, we explored accelerating \emph{modular exponentiation}, allowi
 Implementing modular exponentiation required 2 main components: the actual computation, and algorithms to perform
 arithmetic on very large numbers.
 
-The fundamental modular exponentiation algorithm is: \footnote{The ``Right-to-left binary method'' from Wikipedia: \url{https://en.wikipedia.org/wiki/Modular_exponentiation}.}
+The fundamental modular exponentiation algorithm is displayed in Algorithm \ref{modpow}.
 
-\begin{verbatim}
-function modular_pow(base, exponent, modulus)
-    if modulus = 1 then return 0
-    result := 1
-    base := base mod modulus
-    while exponent > 0
-        if (exponent mod 2 == 1):
-           result := (result * base) mod modulus
-        exponent := exponent >> 1
-        base := (base * base) mod modulus
-    return result
-\end{verbatim}
+\begin{algorithm}[!htb]
+  \label{modpow}
+  \caption[test]{Modular exponentiation algorithm.\footnotemark}
+  \begin{algorithmic}
+    \Procedure{modular\_pow}{}
+    \If {$\mathtt{modulus} = 1$}
+      \Return 0
+    \EndIf
+    \State $\mathtt{result} \gets 1$
+    \State $\mathtt{base} \gets \mathtt{base} \mod \mathtt{modulus}$
+    \While {$\mathtt{exponent} > 0$}
+      \If {$\mathtt{exponent} \mod 2 = 1$}
+        \State $\mathtt{result} \gets (\mathtt{result} \cdot \mathtt{base}) \mod \mathtt{modulus}$
+      \EndIf
+      \State $\mathtt{exponent} \gets \mathtt{exponent} >> 1$
+      \State $\mathtt{base} \gets (\mathtt{base} \cdot \mathtt{base}) \mod \mathtt{modulus}$
+    \EndWhile
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+  
+\footnotetext{The ``Right-to-left binary method'' from Wikipedia: \url{https://en.wikipedia.org/wiki/Modular_exponentiation}.}
 
 This function is trivial to implement, except that it requires performing multiplication and modulus operations on very large numbers.
 In particular, since all the numbers involved are 1024 bits, it required performing 2048 bit arithmetic as the intermediate results
@@ -85,8 +95,8 @@ blocks in the input do not result in duplicate blocks in the output.
 \label{fig:rsaflow}
 \end{figure}
 
-On the FPGA, the top-level read three 1024 bit numbers (the base $b$, the exponent $e$, and the modulus $n$) from
-an input stream, computed $b^e \mod n$, and then wrote the output to a stream.
+On the FPGA, the top-level functions reads three 1024 bit numbers (the base $b$, the exponent $e$, and the modulus $n$) from
+an input stream, computes $b^e \mod n$, and then writes the result the output to a stream.
 This top-level module is defined by the "dut" function in "rsa/fpga_rsa.cc".
 Communication between the host and FPGA on the ZedBoard is done using the "/dev/xillybus_read_32" and the "/dev/xillybus_write_32"
 character devices.
@@ -151,7 +161,7 @@ ecelinux-sw-sim & 1.6421       & 112.7        & 0.14161     & 0.46966     \\
 zedboard-sw-opt & 0.3997       & 19.478       & 0.03447     & 0.08117     \\
 zedboard-sw-sim & 8.1581       & 576.2225     & 0.70353     & 2.40133     \\
 fpga-opt        & 11.596       & 239.96       & 1           & 1           \\
-cosim           & 3.918        & 234.23       &             &             \\ \bottomrule
+cosim           & 3.918        & 234.23       & 0.33866     & 0.97612     \\ \bottomrule
 \end{tabular}
 \label{table:rsadata}
 \caption{RSA algorithm runtimes}
