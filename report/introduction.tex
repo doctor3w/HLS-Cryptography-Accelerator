@@ -12,7 +12,7 @@ to FPGA implementation. While neither was able to beat a server-grade Intel CPU 
 all 3 achieved speedup with respect to the ZedBoard's CPU. AES had a speedup of about 1.5 times (depending on the variant of AES),
 while the password hasher had a speedup of 5.2 times.
 However, for AES and the password cracker, there are significant power advantages from using an FPGA.
-While the password cracker running on ecelinux processors required 0.542 $\frac{\text{J}}{\text{Hash}}$, the optimized
+While the password cracker running on ecelinux processors required 0.0655 $\frac{\text{J}}{\text{Hash}}$, the optimized
 FPGA version required only 0.003 $\frac{\text{J}}{\text{Hash}}$.
 
 For each algorithm, we implemented an optimized software version, and then an FPGA version.
