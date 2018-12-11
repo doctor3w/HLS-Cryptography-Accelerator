@@ -138,7 +138,7 @@ When "byte_digest()" is called, the hasher does the final steps for the last blo
 and computes the final SHA-512 hash. A "reset()" method was also provided to allow the same hasher
 instance to be reused to compute further hashes.
 
-This implementation works extremely well for an HLS FPGA implementation, because
+This implementation works extremely well for an HLS FPGA implementation because
 the entire message does not have to be stored. Only a temporary 128 byte buffer
 to store the current block, and a 64-byte buffer to store the intermediate hash for the previous block is needed.
 Furthermore, by doing this, it allows the size of the message to be variable and be unknown at compile time.
