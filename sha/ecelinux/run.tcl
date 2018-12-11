@@ -1,5 +1,5 @@
 #=============================================================================
-# run_base.tcl 
+# run_base.tcl
 #=============================================================================
 # @brief: A Tcl script for synthesizing the baseline digit recongnition design.
 
@@ -25,7 +25,7 @@ open_solution "solution1"
 set_part {xc7z020clg484-1}
 
 # Target clock period is 10ns
-create_clock -period 9
+create_clock -period 8.5
 
 ### You can insert your own directives here ###
 # Partition the array so 64_bit accesses are fast
