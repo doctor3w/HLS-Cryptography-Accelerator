@@ -9,6 +9,6 @@ DIRS="rsa sha aes cracker"
 OUT="submission.zip"
 rm -rf $OUT
 git clean -xdf $DIRS
-zip -r $OUT $DIRS
+zip -r $OUT $DIRS README.md
 md5sum $OUT
 
