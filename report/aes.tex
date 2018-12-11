@@ -37,7 +37,7 @@ Our optimizied hardware synthesizable version was built using C++ and the Vivado
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.5\textwidth]{aesstate}
-\caption{AES CTR diagram.}
+\caption{AES converting input into state.}
 \label{fig:aesstate}
 \end{figure}
 
@@ -63,7 +63,7 @@ In order to evaluate our optimized FPGA version, we create a host program that r
 Utilization (\%)  &       15 &      0 &       6 &     37 \\ \bottomrule
 \end{tabular}
 \label{table:aesarea}
-\caption{The final area usage of AES-256 (other key-lengths are very similar).}
+\caption{The final area usage report of AES-256 (other key-lengths are very similar).}
 \end{center}
 \end{table}
 
@@ -71,18 +71,19 @@ For a final comparison, we passed the same 8000 bytes through the tiny-AES-c emb
 
 \begin{table}[h]
 \begin{center}
-\begin{tabular}{@{}r r r r@{}}
+\begin{tabular}{@{}r r r r r r r@{}}
 \toprule
-Test & AES128 (ms) & AES192 (ms) & AES256 (ms) \\ \midrule
-ecelinux-sw & 1.6 & 1.9 & 2.1 \\
-ecelinux-csim & 5.1 & 6.2 & 7.2 \\
-zedboard-sw & 25.5 & 30.0 & 34.3 \\
-fpga-baseline & 4560.0 & 5820.0 & 4120.0 \\
-fpga-opt & 19.3 & 20.5 & 17.5 \\ \bottomrule
+\multirow{2}{*}{Test System} & \multicolumn{3}{c}{Time (ms)} & \multicolumn{3}{c}{Speedup} \\ \cline{2-7}
+              & AES128 & AES192 & AES256 & AES128 & AES192 & AES256 \\ \midrule
+ecelinux-sw   & 1.6         & 1.9         & 2.1         & 0.08             & 0.09             & 0.12             \\
+ecelinux-csim & 5.1         & 6.2         & 7.2         & 0.26             & 0.30             & 0.41             \\
+zedboard-sw   & 25.5        & 30.0        & 34.3        & 1.32             & 1.46             & 1.96             \\
+fpga-baseline & 4560.0      & 5820.0      & 4120.0      & 236.2            & 283.9            & 234.5            \\
+fpga-opt      & 19.3        & 20.5        & 17.5        & 1                & 1                & 1                \\ \bottomrule
 \end{tabular}
 \label{table:aestime}
 \caption{The results of the tests run for evaluation.}
 \end{center}
 \end{table}
 
-Overall, these results bode well for a hardware implementation of AES. In embedded scenarios where fast AES is needed for large amounts of data, the FPGA could be extremely useful. The Zedboard's only use about 5 Watts in comparison to ecelinux which can burn hundreds of Watts. Another thing to consider is as we send more data, the bandwith required to read and send this data will increase, and could cause slowdowns there. In a situation where an embedded processor is used, and power is a major constraint, using the FPGA could be a viable option as it provides a speedup while keeping power usage down at the expense of more area. 
+Overall, these results bode well for a hardware implementation of AES. In embedded scenarios where fast AES is needed for large amounts of data, the FPGA could be extremely useful. The Zedboard's only use about 100 mW in comparison to ecelinux which is rated up to 120 Watts. Looking at power per performance, where performance is the ratio of number of blocks per second, our zedboard achieves 0.0035 J/s for AES256 and ecelinux uses 0.504 J/s. The zedboard implementation crushes ecelinux in energy efficiency as ecelinux uses over 140 times the amount of energy. Another thing to consider is as we send more data, the bandwith required to read and send this data will increase, and could cause slowdowns there. In a situation where an embedded processor is used, and power is a major constraint, using the FPGA could be a viable option as it provides a speedup while keeping power usage down at the expense of more area. 
