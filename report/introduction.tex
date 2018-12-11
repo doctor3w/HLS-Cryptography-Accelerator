@@ -4,3 +4,17 @@
 % of the relevant techniques and a high-level overview of your implementation. The introduction
 % should also include a brief qualitative and quantitative overview of the results and point out a few key
 % insights from the project.
+For this project, we implemented AES, RSA, SHA-512, and a Unix password cracking algorithm on an FPGA.
+RSA proved very difficult to implement, and ultimately was far slower on an FPGA than an optimized software
+version running on the ZedBoard's CPU -- about 30 times slower for encryption.
+However, AES, SHA-512, and the Unix password cracker were very amenable
+to FPGA implementation. While neither was able to beat a server-grade Intel CPU (ecelinux) in terms of raw performance,
+all 3 achieved speedup with respect to the ZedBoard's CPU. AES had a speedup of about 1.5 times (depending on the variant of AES),
+while the password hasher had a speedup of 5.2 times.
+However, for AES and the password cracker, there are significant power advantages from using an FPGA.
+While the password cracker running on ecelinux processors required 0.542 $\frac{\text{J}}{\text{Hash}}$, the optimized
+FPGA version required only 0.003 $\frac{\text{J}}{\text{Hash}}$.
+
+For each algorithm, we implemented an optimized software version, and then an FPGA version.
+We benchmarked each algorithm on the server grade Intel CPUs (ecelinux), the embedded ZedBoard CPUs,
+and then on the ZedBoard FPGA. Each algorithm is explained in its own section below.
