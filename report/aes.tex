@@ -1,5 +1,5 @@
 \section{AES}
-The Advanced Encryption Standard (AES) is a widespread symmetric cryptosystem. AES is primarily used as a block cipher, which has openly exploitable parallelism by encrypting multiple blocks at once. Thus we saw AES as a prime candidate to optimize with hardware for large amounts of data. The AES implementation was based off of the NIST documentation\footnote{NIST guide to AES: \url{https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf}.} on AES as well as the github library "tiny-AES-c"\footnote{Embedded optimized tiny-AES-c library: \url{https://github.com/kokke/tiny-AES-c}.}. 
+The Advanced Encryption Standard (AES) is a widespread symmetric cryptosystem. AES is primarily used as a block cipher, which has openly exploitable parallelism by encrypting multiple blocks at once. Thus we saw AES as a prime candidate to optimize with hardware for large amounts of data. The AES implementation was based off of the NIST documentation\footnote{NIST guide to AES: \url{https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf}.} on AES as well as the github library "tiny-AES-c"\footnote{Embedded optimized tiny-AES-c library: \url{https://github.com/kokke/tiny-AES-c}.}.
 
 \subsection{Techniques}
 % This section should provide a detailed description of the applications, algorithms, or
@@ -22,9 +22,9 @@ There are many standard encryption modes which specify how a multi-block message
 Electronic Cookbook mode (ECB) encrypts each block individually, but is very insecure as identical blocks in the input message manifest as identical blocks in the output message.
 Cipher Block Chaining (CBC) XORs each block's plaintext with the encrypted prior block, forming a ``chain''. It is secure, but prevents parallel encryption, since each block depends on the prior block.
 Counter mode (CTR) solves this problem. It starts with a random \emph{Initialization Vector} (IV, also known as a nonce). Block $n$ is encrypted by XORing it with the encrypted value $IV + n$.
-This eliminates the dependencies between blocks, and still provides a secure cipher. 
+This eliminates the dependencies between blocks, and still provides a secure cipher.
 This allows us to pipeline the encryption easily as each value being encrypted is one plus the previous value.
-Figure \ref{fig:aesctr} shows with a diagram how AES CTR works, taking in 16-byte blocks and encrypting them with AES. 
+Figure \ref{fig:aesctr} shows with a diagram how AES CTR works, taking in 16-byte blocks and encrypting them with AES.
 
 \begin{figure}[h]
 \centering
@@ -53,7 +53,7 @@ The other functions (except "ShiftRows"), contain loops to loop over each byte o
 These we completely unroll, as they can all be done in parallel, and it actually reduces area because indexing into the large "ap_uint"s variably was more expensive than direct wires connected to the bits of the state.
 "ShiftRows" was already just a bunch of wire rearrangements and required no optimization.
 The four main functions had 0 or 1 cycle latencies, the 1 cycle for indexing into the Sbox or the RoundKey arrays.
-Ideally we could fully partition those, and reduce those latencies to just combinational logic, but this took too much area. 
+Ideally we could fully partition those, and reduce those latencies to just combinational logic, but this took too much area.
 
 \begin{figure}[h]
 \centering
@@ -109,4 +109,4 @@ fpga-opt      & 19.3        & 20.5        & 17.5        & 1                & 1  
 \end{center}
 \end{table}
 
-Overall, these results bode well for a hardware implementation of AES. In embedded scenarios where fast AES is needed for large amounts of data, the FPGA could be extremely useful. The Xilinx claims ZedBoard only uses sub-Watt power (we will assume 1 Watt) in comparison to ecelinux which is rated up to 120 Watts (we only make use of one core, thus 15 Watts/core). Looking at power per performance, where performance is the number of blocks per second, our ZedBoard achieves 0.035 J/s for AES256 and ecelinux uses 0.063 J/s. The ZedBoard implementation beats ecelinux in energy efficiency as ecelinux uses about 1.8 times the amount of energy. Intel's x86 ISA does include an AESENC instruction that performs one round of AES encryption. Using this instruction would most likely use comparable energy to the FPGA. Another thing to consider is as we send more data, the bandwith required to read and send this data will increase. In a situation where an embedded processor is used, and power is a major constraint, using the FPGA could be a viable option as it provides a speedup while keeping power usage down at the expense of more area.
+Overall, these results bode well for a hardware implementation of AES. In embedded scenarios where fast AES is needed for large amounts of data, the FPGA could be extremely useful. The Xilinx claims ZedBoard only uses sub-Watt power (we will assume 1 Watt) in comparison to ecelinux which is rated up to 120 Watts (we only make use of one core, thus 15 Watts/core). Looking at power per performance, where performance is the number of blocks per second, our ZedBoard achieves 0.035 J/block for AES256 and ecelinux uses 0.063 J/block. The ZedBoard implementation beats ecelinux in energy efficiency as ecelinux uses about 1.8 times the amount of energy. Intel's x86 ISA does include an AESENC instruction that performs one round of AES encryption. Using this instruction would most likely use comparable energy to the FPGA. Another thing to consider is as we send more data, the bandwith required to read and send this data will increase. In a situation where an embedded processor is used, and power is a major constraint, using the FPGA could be a viable option as it provides a speedup while keeping power usage down at the expense of more area.
