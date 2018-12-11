@@ -3,8 +3,21 @@ This project is composed of three subprojects: AES, RSA, and SHA. Each of these
 projects were build for use on the Zedboard's Xilinx Zynq-7000.
 
 ## AES
-Hello my name is Drew and this is how you should run my code
+The entire AES implementation is in the `aes` directory:
+- __aes.cpp__: The optimized synthesizeable AES CTR implementation. 
+- __aes.h__: The header containing some definitions for the AES implementation including 128, 192, or 256 key sizes as well as the number of blocks that will be encrypted with the FPGA. 
+- __aes_test.cpp__: The AES test file for csim. 
+- __aes-sw.c/aes-sw.h/test-sw.c__: The embedded software optimized version from tiny-AES-c. 
+- __data__: Directory containing the random bytes and the encrypted solutions. 
 
+The `Makefile` contains all the commands necessary to build the software. 
+
+- `make`: Builds and runs the `aes.cpp` file. 
+- `make sw`: Builds and runs the optimized AES program. 
+- `make fpga`: Builds and runs the host file for communicating with the FPGA once the bitstream has been loaded. 
+- `make bitsream`: Runs the bitstream making script. 
+
+Running `vivado_hls -f run.tcl` will synthesize the software. 
 
 ## RSA
 Hello my name is Jacob and this is how you should run my code
